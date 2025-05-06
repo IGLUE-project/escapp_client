@@ -1,0 +1,25 @@
+let LOCALES = {
+  es:{
+    "i.auth_title":"Autentícate en Escapp",
+  },
+};
+
+let CONFIG = {
+  endpoint:"https://escapp.es/api/escapeRooms/id",
+  localStorageKey:"LocalStorageKey",
+  imagesPath:"./src/images/",
+  I18n: {
+    availableLocales: ["es","en"],
+    locales: LOCALES,
+    defaultLocale: "es",
+    locale: undefined,
+  },
+  browserRestrictions: {
+    chrome: ">20.1.1432",
+  },
+  browserRestrictionsDefault: true,
+  autovalidate: false,
+  appPuzzleIds: [2],
+  requiredPuzzlesIds:[2,3],
+  forceValidation: true,
+};

@@ -239,7 +239,7 @@ export default function ESCAPP(options){
   };
 
   this.displayCompletionDialog = function(extraOptions,callback){
-    let dialogOptions = {escapp: true, img: (settings.imagesPath + "/trophy.png")};
+    let dialogOptions = {escapp: true, img: "trophy"};
     if(typeof extraOptions === "object"){
       dialogOptions = Object.assign(dialogOptions,extraOptions);
     }

@@ -5,7 +5,7 @@ let LOCALES = {
 };
 
 let CONFIG = {
-  endpoint:"https://escapp.dit.upm.es/api/escapeRooms/id",
+  endpoint:"https://escapp.es/api/escapeRooms/id",
   localStorageKey:"LocalStorageKey",
   imagesPath:"./src/images/",
   I18n: {

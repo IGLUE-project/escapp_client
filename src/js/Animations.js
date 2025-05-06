@@ -1,6 +1,5 @@
 import './jquery-3.4.0.min.js';
 import * as Confetti from './animations/Confetti.js';
-import * as Birds from './animations/Birds.js';
 import * as I18n from './I18n.js';
 
 let initialized = false;
@@ -20,9 +19,6 @@ export function startAnimation(animation,time){
 	switch(animation){
 	case "confetti":
 		Confetti.startConfetti();
-		break;
-	case "birds":
-		Birds.start(imagesPath);
 		break;
 	default:
 		started = false;
@@ -52,9 +48,6 @@ export function stopAnimation(animation){
 	switch(animation){
 	case "confetti":
 		Confetti.stopConfetti();
-		break;
-	case "birds":
-		Birds.stop();
 		break;
 	default:
 		break;

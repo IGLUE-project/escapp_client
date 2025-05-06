@@ -2,7 +2,7 @@ import * as Utils from './Utils.js';
 import * as I18n from './I18n.js';
 import './jquery-3.4.0.min.js';
 import './notify.js';
-import '../css/notifications.scss';
+import '../styles/notifications.scss';
 
 let initialized = false;
 let enabled = false;
