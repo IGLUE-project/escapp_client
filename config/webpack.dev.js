@@ -1,6 +1,7 @@
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 const { merge } = require('webpack-merge')
-
 const common = require('./webpack.common')
+const paths = require('./paths')
 
 module.exports = merge(common, {
   // Set the mode to development or production
@@ -17,6 +18,15 @@ module.exports = merge(common, {
     hot: true,
     port: 8080,
   },
+
+  plugins: [
+    // Generates HTML file
+    new HtmlWebpackPlugin({
+      title: 'EscappClient',
+      template: paths.index,
+      filename: 'index.html',
+    }),
+  ],
 
   module: {
     rules: [

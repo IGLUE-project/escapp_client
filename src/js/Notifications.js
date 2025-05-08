@@ -1,6 +1,6 @@
 import * as Utils from './Utils.js';
 import * as I18n from './I18n.js';
-import './jquery-3.4.0.min.js';
+import './jquery-3.7.1.min.js';
 import './notify.js';
 import '../styles/notifications.scss';
 

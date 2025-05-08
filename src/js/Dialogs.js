@@ -1,9 +1,7 @@
-import './jquery-3.4.0.min.js';
+import './jquery-3.7.1.min.js';
 import * as I18n from './I18n.js';
 import MicroModal from './MicroModal.js';
 import '../styles/dialogs.scss';
-import escappLogoImg from '../images/escapp_logo_dark.png';
-import trophyImg from '../images/trophy.png';
 
 let initialized = false;
 let imagesPath;
@@ -16,8 +14,9 @@ export function init(options){
   imagesPath = options.imagesPath || "/assets/images/";
   let modalHTMLcode = '<div class="escapp-modal micromodal-slide" id="escapp-modal" aria-hidden="true"><div class="escapp-modal__overlay" tabIndex="-1"><div class="escapp-modal__container" role="dialog" aria-modal="true"><header class="escapp-modal__header"><h2 class="escapp-modal__title" id="escapp-modal-title"></h2></header><main class="escapp-modal__content" id="escapp-modal-content"><p class="content"></p></main><footer class="escapp-modal__footer"></footer></div></div>';
   $("body").prepend(modalHTMLcode);
-  $("#escapp-modal div.escapp-modal__container").prepend('<img class="dialog_corner logo" src="' + escappLogoImg + '"/>');
-  $("#escapp-modal .escapp-modal__content").prepend('<div class="escapp_content_img_wrapper"><img src="' + trophyImg + '"/></div>');
+  $("#escapp-modal div.escapp-modal__container").prepend('<img class="dialog_corner logo" src="' + imagesPath + 'escapp_logo_dark.png"/>');
+  $("#escapp-modal div.escapp-modal__container").prepend('<img class="dialog_corner lock" src="' + imagesPath + 'lock.svg"/>')
+  $("#escapp-modal .escapp-modal__content").prepend('<div class="escapp_content_img_wrapper"><img src="' + imagesPath + 'trophy.png"/></div>');
   MicroModal.init({
     disableScroll: true,
     disableFocus: false,
@@ -45,19 +44,8 @@ export function displayDialog(options){
   $(".escapp-modal-input").remove();
 
   //Main img
-  let imgPath;
   if(typeof options.img === "string"){
-    switch (options.img) {
-      case "trophy":
-        imgPath = trophyImg;
-        break;
-      default:
-        imgPath = undefined;
-    }
-  }
-
-  if(typeof imgPath === "string"){
-    $("#escapp-modal .escapp-modal__content div.escapp_content_img_wrapper img").attr("src",imgPath);
+    $("#escapp-modal .escapp-modal__content div.escapp_content_img_wrapper img").attr("src",options.img);
     $("#escapp-modal .escapp-modal__content div.escapp_content_img_wrapper").show();
   } else {
     $("#escapp-modal .escapp-modal__content div.escapp_content_img_wrapper img").attr("src","");

@@ -1,13 +1,3 @@
-/*
- * ESCAPP
- * This library provides utils for using the educational escape rooms manager Escapp in a client-side web application.
- *
- * GING
- * https://github.com/agordillo/escapp_client
- * Creative Commons Attribution-ShareAlike 4.0 International License.
- *
- * @version 0.0.2
- */
 import 'es6-promise';
 import "isomorphic-fetch";
 import Bowser from "bowser";
@@ -239,7 +229,7 @@ export default function ESCAPP(options){
   };
 
   this.displayCompletionDialog = function(extraOptions,callback){
-    let dialogOptions = {escapp: true, img: "trophy"};
+    let dialogOptions = {escapp: true, img: (settings.imagesPath + "/trophy.png")};
     if(typeof extraOptions === "object"){
       dialogOptions = Object.assign(dialogOptions,extraOptions);
     }

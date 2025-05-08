@@ -1,3 +1,5 @@
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
 const TerserPlugin = require('terser-webpack-plugin');
@@ -36,7 +38,21 @@ module.exports = merge(common, {
     ],
   },
   plugins: [
-    // Extracts CSS into separate files
+    new CleanWebpackPlugin(),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: paths.images,
+          to: 'images',
+          noErrorOnMissing: true,
+        },
+        {
+          from: paths.license,
+          to: '',
+          noErrorOnMissing: true,
+        },
+      ],
+    }),
     new MiniCssExtractPlugin({
       filename: 'escapp.css',
       chunkFilename: '[id].css',
@@ -47,7 +63,7 @@ module.exports = merge(common, {
     minimizer: [new CssMinimizerPlugin(), 
     new TerserPlugin({
       terserOptions: {
-        format: { comments: false, },
+        format: { comments: /@license|@preserve|@cc_on|^!/, },
       },
       extractComments: false,
     }),

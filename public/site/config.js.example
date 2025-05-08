@@ -7,7 +7,7 @@ let LOCALES = {
 let CONFIG = {
   endpoint:"https://escapp.es/api/escapeRooms/id",
   localStorageKey:"LocalStorageKey",
-  imagesPath:"../images/",
+  imagesPath:"/images/",
   I18n: {
     availableLocales: ["es","en"],
     locales: LOCALES,
