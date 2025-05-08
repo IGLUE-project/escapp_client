@@ -1,5 +1,6 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin');
 const { merge } = require('webpack-merge')
 
 const paths = require('./paths')
@@ -10,8 +11,9 @@ module.exports = merge(common, {
   devtool: false,
   output: {
     path: paths.build,
-    publicPath: '/',
-    filename: 'js/[name].[contenthash].bundle.js',
+    filename: 'escapp.js',
+    assetModuleFilename: "images/[name][ext]",
+    publicPath: '',
   },
   module: {
     rules: [
@@ -36,16 +38,21 @@ module.exports = merge(common, {
   plugins: [
     // Extracts CSS into separate files
     new MiniCssExtractPlugin({
-      filename: 'styles/[name].[contenthash].css',
+      filename: 'escapp.css',
       chunkFilename: '[id].css',
     }),
   ],
   optimization: {
     minimize: true,
-    minimizer: [new CssMinimizerPlugin(), '...'],
-    runtimeChunk: {
-      name: 'runtime',
-    },
+    minimizer: [new CssMinimizerPlugin(), 
+    new TerserPlugin({
+      terserOptions: {
+        format: { comments: false, },
+      },
+      extractComments: false,
+    }),
+    ],
+    runtimeChunk: false,
   },
   performance: {
     hints: false,

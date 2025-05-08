@@ -45,7 +45,7 @@ export default function ESCAPP(options){
     endpoint: undefined,
     localStorageKey: "ESCAPP",
     encryptKey: undefined,
-    imagesPath: "./images/",
+    imagesPath: undefined,
     restoreState: "REQUEST_USER", //AUTO, AUTO_NOTIFICATION, REQUEST_USER, NEVER
     I18n: undefined,
     browserRestrictions: {

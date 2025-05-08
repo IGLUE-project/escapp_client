@@ -2,6 +2,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
+const path = require('path')
 const paths = require('./paths')
 
 module.exports = {
@@ -20,26 +21,25 @@ module.exports = {
     // Removes/cleans build folders and unused assets when rebuilding
     new CleanWebpackPlugin(),
 
-    // Copies files from target to destination folder
+/*    // Copies files from target to destination folder
     new CopyWebpackPlugin({
       patterns: [
         {
           from: paths.public,
-          to: 'assets',
+          to: 'public',
           globOptions: {
             ignore: ['*.DS_Store'],
           },
           noErrorOnMissing: true,
         },
       ],
-    }),
-
+    }),*/
+    
     // Generates HTML file
     new HtmlWebpackPlugin({
       title: 'EscappClient',
-      favicon: paths.src + '/images/favicon.png',
-      template: paths.src + '/index.html', // index file
-      filename: 'index.html', // output file
+      template: paths.index,
+      filename: 'index.html',
     }),
   ],
 
@@ -62,7 +62,6 @@ module.exports = {
     extensions: ['.js', '.jsx', '.json'],
     alias: {
       '@': paths.src,
-      assets: paths.public,
     },
   },
 }
