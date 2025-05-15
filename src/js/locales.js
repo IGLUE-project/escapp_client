@@ -70,8 +70,8 @@ export let ESCAPP_LOCALES = {
     "i.notification_time_one_minute": "1 minute to run out of time",
     "i.notification_time_runout": "Time is up!",
 
-    "i.notsupported_title":"Unsupported web browser",
-    "i.notsupported_text":"We are sorry. Your web browser does not allow to perform this activity. Try a different browser.",
+    "i.not_supported_title":"Unsupported web browser",
+    "i.not_supported_text":"We are sorry. Your web browser does not allow to perform this activity. Try a different browser.",
   },
   es:{
     "i.button_ok":"Ok",

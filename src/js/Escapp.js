@@ -151,23 +151,18 @@ export default function ESCAPP(_settings){
     Events.init({endpoint: settings.endpoint, escapp: this});
     Countdown.init({enabled: ((Notifications.isEnabled())&&(settings.countdown)), escapp: this});
 
-    //Get user from LocalStorage
-    let userLS = LocalStorage.getSetting("user");
-    //Get user from URL params
-    let userURL = this.getUserCredentials({email: (URL_params.escapp_email || URL_params.email), token: (URL_params.escapp_token || URL_params.token)});
-
-    if((typeof userURL !== "undefined")&&(typeof userLS !== "undefined")&&(userURL.email !== userLS.email)){
-      //A different user is accessing the escape room in the same device
-      this.resetUserCredentials();
-      userLS = undefined;
-    }
-
-    if(typeof userLS === "object"){
-      settings.user = userLS;
-    } else {
+    //User credentials. Priority: settings, URL params, LocalStorage.
+    if(typeof this.getUserCredentials(settings.user) === "undefined"){
+      //Get user from URL params
+      let userURL = this.getUserCredentials({email: (URL_params.escapp_email || URL_params.email), token: (URL_params.escapp_token || URL_params.token)});
       if(typeof userURL !== "undefined"){
         settings.user = userURL;
-        settings.user.participation = "PARTICIPANT";
+      } else {
+        //Get user from LocalStorage
+        let userLS = LocalStorage.getSetting("user");
+        if(typeof this.getUserCredentials(userLS) !== "undefined"){
+          settings.user = userLS;
+        }
       }
     }
 
@@ -238,7 +233,7 @@ export default function ESCAPP(_settings){
     if(this.isSupported() === true){
       return this.validateUser(callback);
     } else {
-      return this.displayCustomEscappDialog(I18n.getTrans("i.notsupported_title"),I18n.getTrans("i.notsupported_text"),{},function(response){
+      return this.displayCustomEscappDialog(I18n.getTrans("i.not_supported_title"),I18n.getTrans("i.not_supported_text"),{},function(response){
         if(typeof callback === "function"){
           callback(false,undefined);
         }
@@ -247,8 +242,8 @@ export default function ESCAPP(_settings){
   };
 
   this.validateUser = function(callback){
-    if((typeof settings.user !== "object")||(typeof settings.user.token !== "string")||(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) === -1)){
-      //User does not have valid auth credentials.
+    if((typeof settings.user !== "object")||(typeof settings.user.token !== "string")){
+      //User does not have auth credentials.
       this.displayUserAuthDialog(true,function(success){
         if((success)||(settings.forceValidation===false)){
           return this.validateUserAfterAuth(callback);
