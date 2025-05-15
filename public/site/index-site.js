@@ -2,14 +2,16 @@ let escapp;
 let puzzleId = 1;
 
 $(document).ready(function(){
-	ESCAPP_CLIENT_SETTINGS.onNewErStateCallback = function(erState){
-		console.log("onNewErStateCallback");
-		console.log(erState);
-	};
-	ESCAPP_CLIENT_SETTINGS.onErRestartCallback = function(erState){
-		console.log("onErRestartCallback");
-		console.log(erState);
-	};
+	if(typeof ESCAPP_CLIENT_SETTINGS == "object"){
+		ESCAPP_CLIENT_SETTINGS.onNewErStateCallback = function(erState){
+			console.log("onNewErStateCallback");
+			console.log(erState);
+		};
+		ESCAPP_CLIENT_SETTINGS.onErRestartCallback = function(erState){
+			console.log("onErRestartCallback");
+			console.log(erState);
+		};
+	}
 	console.log("Init Escapp client with ESCAPP_CLIENT_SETTINGS:");
 	console.log(ESCAPP_CLIENT_SETTINGS);
 	escapp = new ESCAPP();

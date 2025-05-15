@@ -76,6 +76,10 @@ export default function ESCAPP(){
     // Find environmentSettings provided through a global JavaScript variable named "ESCAPP_CLIENT_SETTINGS"
     let environmentSettings = this.getEnvironmentSettings();
 
+    if(typeof environmentSettings != "object"){
+      return alert("Escapp Client could not be started correctly because the object window.ESCAPP_CLIENT_SETTINGS was not found.");
+    }
+    
     // Merge defaultSettings and environmentSettings to obtain final settings
     settings = Utils.deepMerge(defaultSettings, environmentSettings);
     if(typeof settings.encryptKey === "undefined"){
