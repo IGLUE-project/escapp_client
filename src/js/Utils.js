@@ -114,9 +114,9 @@ var getProtocol = function(){
 }
 
 export function validateEmail(email){
-	if(typeof email !== "string") return false;
-	var regex = /\S+@\S+\.\S+/;
-	return regex.test(email);
+  if(typeof email !== "string") return false;
+  var regex = /\S+@\S+\.\S+/;
+  return regex.test(email);
 };
 
 export function validateString(str){

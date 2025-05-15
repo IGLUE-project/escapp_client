@@ -22,7 +22,7 @@ export function init(options){
 
   //Set hardcoded locales and merge with config locales
   LOCALES = ESCAPP_LOCALES;
-  if(typeof options.locales === "object"){
+  if((typeof options == "object")&&(typeof options.locales === "object")){
     LOCALES = Utils.deepMerge(LOCALES, options.locales);
     delete settings.locales;
   }

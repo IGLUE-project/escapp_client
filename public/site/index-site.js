@@ -1,5 +1,4 @@
 let escapp;
-let puzzleId = 1;
 
 $(document).ready(function(){
 	if(typeof ESCAPP_CLIENT_SETTINGS == "object"){
@@ -17,6 +16,8 @@ $(document).ready(function(){
 	escapp = new ESCAPP(ESCAPP_CLIENT_SETTINGS);
 	console.log("Escapp client settings after initiation:");
 	console.log(escapp.getSettings());
+	console.log("Reusable puzzle settings:");
+	console.log(escapp.getReusablePuzzleSettings());
 
 	loadEvents();
 });
@@ -60,29 +61,28 @@ let loadEvents = function(){
 	});
 
 	$("#ldata").click(function(){
-		puzzleId = 0;
 		escapp.reset(function(){
 			console.log("Local data removed");
 		});
 	});
 
 	$("#spuzzle, #pdialog").click(function(){
+		//AUTH REQUIRED
+		if(escapp.isUserLoggedIn()===false){
+			return escapp.displayCustomEscappDialog("Authentication required","You must authenticate before submitting solutions. To authenticate, click the 'Authenticate' button.");
+		}
 		let dialogOptions = {};
 		// dialogOptions.inputs = [{"type":"password"}];
-		escapp.displayPuzzleDialog("Puzzle " + puzzleId,"Introduce the solution to the puzzle",dialogOptions,function(dialogResponse){
+		escapp.displayPuzzleDialog("Puzzle " + escapp.getNextPuzzle(),"Introduce the solution to the puzzle", dialogOptions, function(dialogResponse){
 			//On close dialog callback
 			if(dialogResponse.choice === "ok"){
 				let puzzleSolution = dialogResponse.value;
-				console.log("Puzzle solution sent: " + puzzleSolution);
-				escapp.submitPuzzle(puzzleId,puzzleSolution,{},function(success,res){
+				console.log("The solution '" + puzzleSolution + "' has been sent for puzzle " + escapp.getNextPuzzle());
+				escapp.submitNextPuzzle(puzzleSolution,{},function(success,res){
 					//Puzzle submitted
-					console.log("Puzzle submitted (puzzleId = " + puzzleId + ")");
 					console.log("Success: " + success);
 					console.log("Full Escapp response:");
 					console.log(res);
-					if(success === true){
-						puzzleId = puzzleId + 1;
-					}
 				});
 			} else {
 				console.log("No puzzle solution was specified");
@@ -91,22 +91,22 @@ let loadEvents = function(){
 	});
 
 	$("#cpuzzle").click(function(){
+		//AUTH REQUIRED
+		if(escapp.isUserLoggedIn()===false){
+			return escapp.displayCustomEscappDialog("Authentication required","You must authenticate before checking solutions. To authenticate, click the 'Authenticate' button.");
+		}
 		let dialogOptions = {};
 		// dialogOptions.inputs = [{"type":"password"}];
-		escapp.displayPuzzleDialog("Puzzle " + puzzleId,"Introduce the solution to the puzzle",dialogOptions,function(dialogResponse){
+		escapp.displayPuzzleDialog("Puzzle " + escapp.getNextPuzzle(),"Introduce the solution to the puzzle", dialogOptions, function(dialogResponse){
 			//On close dialog callback
 			if(dialogResponse.choice === "ok"){
 				let puzzleSolution = dialogResponse.value;
-				console.log("Puzzle solution sent: " + puzzleSolution);
-				escapp.checkPuzzle(puzzleId,puzzleSolution,{},function(success,res){
+				console.log("The solution '" + puzzleSolution + "' has been sent for puzzle " + escapp.getNextPuzzle());
+				escapp.checkNextPuzzle(puzzleSolution,{},function(success,res){
 					//Puzzle submitted
-					console.log("Puzzle checked (puzzleId = " + puzzleId + ")");
 					console.log("Success: " + success);
 					console.log("Full Escapp response:");
 					console.log(res);
-					if(success === true){
-						puzzleId = puzzleId + 1;
-					}
 				});
 			} else {
 				console.log("No puzzle solution was specified");
@@ -133,6 +133,9 @@ let loadEvents = function(){
 	});
 
 	$("#notification").click(function(){
+		if(escapp.getSettings().notifications === false){
+			return escapp.displayCustomEscappDialog("Notifications disabled","You must enable notifications to show notifications through Escapp client");
+		}
 		escapp.displayCustomEscappNotification("Content of the custom escapp notification");
 		// escapp.displayCustomNotification("Content of the custom ranking notification",{type: "ranking"});
 		// escapp.displayCustomNotification("Content of the custom warning notification",{type: "warning"});

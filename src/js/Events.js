@@ -218,11 +218,6 @@ function onNewHint(res){
 function onPuzzleResponse(res){
   if((res.code === "OK")&&(typeof res.puzzleOrder === "number")){
     let puzzlesSolved = Object.assign([],ESCAPP.getNewestState().puzzlesSolved);
-    // let settings = ESCAPP.getSettings();
-    // if((settings.appPuzzleIds instanceof Array)&&(settings.appPuzzleIds.length > 0)){
-    //   puzzlesSolved = puzzlesSolved.filter(puzzle_id => settings.appPuzzleIds.indexOf(puzzle_id)!==-1);
-    // }
-
     ESCAPP.updateRemoteErState(res.erState);
 
     if(puzzlesSolved.indexOf(res.puzzleOrder)===-1){

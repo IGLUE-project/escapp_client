@@ -15,14 +15,23 @@ export default function ESCAPP(_settings){
 
   //Settings
   let settings = {};
+  let reusablePuzzleSettings = {};
+
   let defaultSettings = {
-    initCallback: undefined,
-    onNewErStateCallback: undefined,
-    onErRestartCallback: undefined,
     endpoint: undefined,
-    localStorageKey: "ESCAPP",
-    encryptKey: undefined,
     imagesPath: "/assets/images/",
+    reusablePuzzle: false,
+    linkedPuzzleIds: undefined,
+    relatedPuzzleIds: undefined,
+    requiredPuzzlesIds: undefined,
+    user: {
+      email: undefined,
+      token: undefined,
+    },
+    forceValidation: true,
+    autovalidate: false,
+    notifications: false,
+    rtc: true,
     restoreState: "REQUEST_USER", //AUTO, AUTO_NOTIFICATION, REQUEST_USER, NEVER
     I18n: undefined,
     browserRestrictions: {
@@ -31,31 +40,32 @@ export default function ESCAPP(_settings){
       "firefox": ">38"
     },
     browserRestrictionsDefault: true,
-    autovalidate: false,
-    appPuzzleIds: undefined,
-    requiredPuzzlesIds: undefined,
-    forceValidation: true,
-    notifications: true,
-    rtc: true,
+    countdown: true,
+    initCallback: undefined,
+    onNewErStateCallback: undefined,
+    onErRestartCallback: undefined,
+  };
+
+  let defaultReadOnlySettings = {
+    erId: undefined,
+    localStorageKey: undefined,
+    encryptKey: undefined,
     user: {
-      email: undefined,
-      password: undefined,
-      token: undefined,
       authenticated: false,
       participation: undefined
     },
     localErState: undefined,
     remoteErState: undefined,
+    nextPuzzleId: undefined,
     teamName: undefined,
     duration: undefined,
     remainingTime: undefined,
-    countdown: true,
     puzzlesRequirements: true,
   };
 
   let defaultERState = {
-    puzzlesSolved: [], 
     puzzleData: {},
+    puzzlesSolved: [], 
     progress: 0,
     score: 0,
     nPuzzles: undefined,
@@ -73,25 +83,62 @@ export default function ESCAPP(_settings){
   //////////////////
 
   this.init = function(_settings){
-    if(typeof _settings != "object"){
-      // Find _settings provided through a global JavaScript variable named "ESCAPP_CLIENT_SETTINGS"
-      _settings = this.getSettingsFromEnvironment();
-    }
-
-    if(typeof _settings != "object"){
+    //Obtain and process settings
+    if(typeof _settings !== "object"){
       return alert("Escapp Client could not be started correctly because initial settings were not provided.");
     }
 
+    if(_settings.reusablePuzzle === true){
+      // Find _settings provided by Escapp through a global JavaScript variable named "ESCAPP_REUSABLE_PUZZLE_SETTINGS"
+      let _reusablePuzzleSettings = this.getReusablePuzzleSettingsFromEnvironment();
+      if(typeof _reusablePuzzleSettings !== "object"){
+        return alert("Escapp Client could not be started correctly because the JavaScript variable ESCAPP_REUSABLE_PUZZLE_SETTINGS was not found.");
+      }
+
+      if(typeof _reusablePuzzleSettings.escappClientSettings == "object"){
+        _settings = Utils.deepMerge(_settings, Object.assign({}, _reusablePuzzleSettings.escappClientSettings));
+      } else {
+        return alert("Escapp Client could not be started correctly because the reusablePuzzleSettings do not contain escappClientSettings.");
+      }
+
+      _reusablePuzzleSettings = Object.assign({},_reusablePuzzleSettings);
+      delete _reusablePuzzleSettings.escappClientSettings;
+      reusablePuzzleSettings = _reusablePuzzleSettings;
+    }
+
     // Merge defaultSettings and _settings to obtain final settings
-    settings = Utils.deepMerge(defaultSettings, _settings);
-    if(typeof settings.encryptKey === "undefined"){
-      settings.encryptKey = settings.localStorageKey;
+    settings = Utils.deepMerge(Utils.deepMerge(defaultSettings, _settings), defaultReadOnlySettings);
+
+    if((typeof settings.relatedPuzzleIds !== "object")&&(typeof settings.linkedPuzzleIds == "object")){
+      settings.relatedPuzzleIds = settings.linkedPuzzleIds;
     }
 
     //Check URL params
     let URL_params = Utils.getParamsFromCurrentUrl();
     if(typeof URL_params.escapp_endpoint !== "undefined"){
       settings.endpoint = Utils.checkUrlProtocol(URL_params.escapp_endpoint);
+    }
+    if(typeof settings.endpoint !== "string"){
+      return alert("Escapp Client could not be started correctly because the Escapp endpoint was not provided.");
+    }
+    settings.erId = this.getERIdFromEscappEndpoint(settings.endpoint);
+    if((this.isValidEscappEndpoint(settings.endpoint)==="false")||(typeof settings.erId !== "string")){
+      return alert("Escapp Client could not be started correctly because the format of the provided Escapp endpoint is incorrect.");
+    }
+
+    if(typeof settings.resourceId === "undefined"){
+      if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
+        settings.resourceId = settings.linkedPuzzleIds.join("-");
+      } else {
+        return alert("Escapp Client could not be started correctly because neither resourceId nor linkedPuzzleIds were provided.");
+      }
+    }
+
+    if(typeof settings.localStorageKey === "undefined"){
+      settings.localStorageKey = "ESCAPP_" + settings.erId + "_" + settings.resourceId; 
+    }
+    if(typeof settings.encryptKey === "undefined"){
+      settings.encryptKey = settings.localStorageKey;
     }
     
     //Init modules
@@ -120,11 +167,15 @@ export default function ESCAPP(_settings){
     } else {
       if(typeof userURL !== "undefined"){
         settings.user = userURL;
-        settings.user.authenticated = true;
         settings.user.participation = "PARTICIPANT";
       }
     }
 
+    //Force authentication when reload
+    if(typeof settings.user === "object"){
+      settings.user.authenticated = false;
+    }
+    
     //Get escape room state from LocalStorage
     let localErState = LocalStorage.getSetting("localErState");
     if(this.validateERState(localErState)===false){
@@ -134,13 +185,13 @@ export default function ESCAPP(_settings){
     LocalStorage.saveSetting("localErState",settings.localErState);
   };
 
-  this.getSettingsFromEnvironment = function(){
+  this.getReusablePuzzleSettingsFromEnvironment = function(){
     let win = window;
     let attempts = 0;
     let limit = 10;
     
     try {
-      while ((typeof win.ESCAPP_CLIENT_SETTINGS != "object") && (win.parent) && (win.parent !== win) && (attempts <= limit)){
+      while ((typeof win.ESCAPP_REUSABLE_PUZZLE_SETTINGS !== "object") && (win.parent) && (win.parent !== win) && (attempts <= limit)){
           attempts += 1;
           win = win.parent;
       }
@@ -148,12 +199,13 @@ export default function ESCAPP(_settings){
       //Catch cross domain issues
     }
 
-    if(typeof win.ESCAPP_CLIENT_SETTINGS == "object"){
-      return win.ESCAPP_CLIENT_SETTINGS;
+    if(typeof win.ESCAPP_REUSABLE_PUZZLE_SETTINGS == "object"){
+      return win.ESCAPP_REUSABLE_PUZZLE_SETTINGS;
     } else {
       return undefined;
     }
   };
+
 
   //////////////////
   // Client API
@@ -195,8 +247,8 @@ export default function ESCAPP(_settings){
   };
 
   this.validateUser = function(callback){
-    if((settings.user.authenticated !== true)||(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) === -1)){
-      //User is not authenticated or is authenticated but not a participant of the escape room.
+    if((typeof settings.user !== "object")||(typeof settings.user.token !== "string")||(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) === -1)){
+      //User does not have valid auth credentials.
       this.displayUserAuthDialog(true,function(success){
         if((success)||(settings.forceValidation===false)){
           return this.validateUserAfterAuth(callback);
@@ -218,6 +270,10 @@ export default function ESCAPP(_settings){
         }
       }.bind(this));
     }
+  };
+
+  this.isUserLoggedIn = function(){
+    return (settings.user.authenticated === true);
   };
 
   this.displayCustomEscappDialog = function(title,text,extraOptions,callback){
@@ -353,6 +409,7 @@ export default function ESCAPP(_settings){
     Animations.stopAnimation(animation);
   };
 
+
   //////////////////
   // Escapp API
   //////////////////
@@ -378,10 +435,10 @@ export default function ESCAPP(_settings){
         }
     })
     .then(res => res.json()).then(function(res){
+      delete userCredentials.password;
       settings.user = userCredentials;
       if(typeof res.token === "string"){
         settings.user.token = res.token;
-        delete settings.user.password;
       }
       settings.user.authenticated = (res.authentication === true);
       settings.user.participation = res.participation;
@@ -433,9 +490,6 @@ export default function ESCAPP(_settings){
       }
       return;
     }
-    if((typeof puzzleId === "undefined")&&(settings.appPuzzleIds instanceof Array)&&(settings.appPuzzleIds.length === 1)){
-      puzzleId = settings.appPuzzleIds[0];
-    }
     if(typeof puzzleId === "undefined"){
       if(typeof callback === "function"){
         callback(false,{msg: "Puzzle id not provided"});
@@ -463,7 +517,7 @@ export default function ESCAPP(_settings){
       }
     }).then(res => res.json()).then(function(res){
         let success = false;
-        if(options.readonly != true){
+        if(options.readonly !== true){
           success = (res.code === "OK");
           if(success){
             //Puzzle solved
@@ -494,6 +548,19 @@ export default function ESCAPP(_settings){
   this.checkPuzzle = function(puzzleId,solution,options={},callback){
     options.readonly = true;
     this.submitPuzzle(puzzleId,solution,options,callback);
+  };
+
+  this.submitNextPuzzle = function(solution,options={},callback){
+    this.submitPuzzle(this.getNextPuzzle(),solution,options,callback);
+  };
+
+  this.checkNextPuzzle = function(solution,options={},callback){
+    options.readonly = true;
+    this.checkPuzzle(this.getNextPuzzle(),solution,options,callback);
+  };
+
+  this.getNextPuzzle = function(){
+    return settings.nextPuzzleId;
   };
 
   this.start = function(callback){
@@ -541,14 +608,6 @@ export default function ESCAPP(_settings){
     }); 
   };
 
-  this.sendData = function(data,callback){
-    //TODO
-  };
-
-  this.retrieveData = function(callback){
-    //TODO
-  };
-
 
   //////////////////
   // Utils
@@ -565,16 +624,10 @@ export default function ESCAPP(_settings){
       userCredentials.password = user.password;
     }
     return userCredentials;
-  }
+  };
 
   this.resetUserCredentials = function(){
-    settings.user = {
-      email: undefined,
-      password: undefined,
-      token: undefined,
-      authenthicated: false,
-      participation: undefined
-    };
+    settings.user = Object.assign({}, defaultReadOnlySettings.user);
     settings.localErState = defaultERState;
     settings.remoteErState = undefined;
     LocalStorage.removeSetting("localErState");
@@ -650,7 +703,7 @@ export default function ESCAPP(_settings){
       return this.updateErStates(erStateToRestore,callback);
     }
 
-    if((settings.appPuzzleIds instanceof Array)&&(settings.appPuzzleIds.length > 0)){
+    if((settings.relatedPuzzleIds instanceof Array)&&(settings.relatedPuzzleIds.length > 0)){
       if(this.isRemoteStateNewestForApp()===false){
         //State is new but not for this app. Prevent dialog, but update.
         return this.updateErStates(erStateToRestore,callback);
@@ -712,6 +765,9 @@ export default function ESCAPP(_settings){
       }
     }
 
+    //Update nextPuzzleId
+    this.updateNextPuzzle();
+
     //Progress and score
     this.updateTrackingLocalErState();
 
@@ -755,6 +811,21 @@ export default function ESCAPP(_settings){
     }
   };
 
+  this.updateNextPuzzle = function(){
+     let _nextPuzzleId;
+     if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
+      if((typeof settings.localErState === "object")&&(settings.localErState.puzzlesSolved instanceof Array)){
+        let puzzlesUnsolved = settings.linkedPuzzleIds.filter(puzzleId => !settings.localErState.puzzlesSolved.includes(puzzleId));
+        if(puzzlesUnsolved.length > 0){
+          _nextPuzzleId = Math.min(...puzzlesUnsolved);
+        } else {
+          _nextPuzzleId = Math.max(...settings.linkedPuzzleIds);
+        }
+      }
+    }
+    settings.nextPuzzleId = _nextPuzzleId;
+  };
+
   this.getNewestState = function(){
     return (this.isRemoteStateNewest() ? settings.remoteErState : settings.localErState);
   };
@@ -771,12 +842,12 @@ export default function ESCAPP(_settings){
     }
 
     if(appScope===true){
-      if((settings.appPuzzleIds instanceof Array)&&(settings.appPuzzleIds.length > 0)){
+      if((settings.relatedPuzzleIds instanceof Array)&&(settings.relatedPuzzleIds.length > 0)){
         //Filter
         let _localErState = Utils.deepMerge({},settings.localErState);
-        _localErState.puzzlesSolved = _localErState.puzzlesSolved.filter(puzzle_id => settings.appPuzzleIds.indexOf(puzzle_id)!==-1);
+        _localErState.puzzlesSolved = _localErState.puzzlesSolved.filter(puzzle_id => settings.relatedPuzzleIds.indexOf(puzzle_id)!==-1);
         let _remoteErState = Utils.deepMerge({},settings.remoteErState);
-        _remoteErState.puzzlesSolved = _remoteErState.puzzlesSolved.filter(puzzle_id => settings.appPuzzleIds.indexOf(puzzle_id)!==-1);
+        _remoteErState.puzzlesSolved = _remoteErState.puzzlesSolved.filter(puzzle_id => settings.relatedPuzzleIds.indexOf(puzzle_id)!==-1);
         return this.isStateNewestThan(_remoteErState,_localErState);
       }
     }
@@ -809,6 +880,17 @@ export default function ESCAPP(_settings){
 
   this.getEscappPlatformFinishURL = function(){
     return settings.endpoint.replace("/api","") + "/finish";
+  };
+
+  this.isValidEscappEndpoint = function(url) {
+    const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/[0-9]+)$/;
+    return regex.test(url);
+  };
+
+  this.getERIdFromEscappEndpoint = function(url) {
+    const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/([0-9]+))$/;
+    const match = url.match(regex);
+    return match ? (parseInt(match[2], 10) + "") : undefined;
   };
 
   this.connect = function(){
@@ -854,11 +936,17 @@ export default function ESCAPP(_settings){
     return undefined;
   };
 
+
   //////////////////
   // Utils for subcomponents
   //////////////////
+
   this.getSettings = function(){
     return settings;
+  };
+
+  this.getReusablePuzzleSettings = function(){
+    return reusablePuzzleSettings;
   };
 
   this.isEREnded = function(){

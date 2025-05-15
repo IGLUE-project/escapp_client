@@ -9,18 +9,37 @@ let LOCALES = {
 
 let ESCAPP_CLIENT_SETTINGS = {
   endpoint:"https://escapp.es/api/escapeRooms/id",
-  appPuzzleIds: [1],
-  localStorageKey:"LocalStorageKey",
   imagesPath:"/images/",
+  linkedPuzzleIds: [1],
+  forceValidation: true,
+  notifications: "FALSE_IF_EMBED",
+  rtc: true,
+  restoreState: "REQUEST_USER",
   I18n: {
     availableLocales: ["es","en"],
     locales: LOCALES,
     defaultLocale: "en",
     locale: undefined,
   },
-  autovalidate: false,
-  forceValidation: true,
-  restoreState: "REQUEST_USER",
-  notifications: "FALSE_IF_EMBED",
-  rtc: false
 };
+
+
+/*
+
+//Config example for reusable puzzles
+
+let ESCAPP_CLIENT_SETTINGS = {
+  reusablePuzzle: true,
+}
+
+window.ESCAPP_REUSABLE_PUZZLE_SETTINGS = {
+  solutionLength: 5,
+  escappClientSettings: {
+    endpoint:"https://escapp.es/api/escapeRooms/id",
+    imagesPath:"/images/",
+    linkedPuzzleIds: [1],
+    rtc: false,
+  },
+};
+
+*/
