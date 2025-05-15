@@ -11,31 +11,18 @@ import * as Animations from './Animations.js';
 import * as Events from './Events.js';
 import * as Countdown from './Countdown.js';
 
-let DEFAULT_ESCAPP_ER_STATE = {
-  puzzlesSolved: [], 
-  puzzleData: {},
-  progress: 0,
-  score: 0,
-  nPuzzles: undefined,
-  hintsAllowed: undefined,
-  startTime: undefined,
-  remainingTime: undefined,
-  teamId: undefined,
-  teamMembers: undefined,
-  ranking: undefined
-};
+export default function ESCAPP(){
 
-export default function ESCAPP(options){
-
-  //Default options
-  let defaults = {
+  //Settings
+  let settings = {};
+  let defaultSettings = {
     initCallback: undefined,
     onNewErStateCallback: undefined,
     onErRestartCallback: undefined,
     endpoint: undefined,
     localStorageKey: "ESCAPP",
     encryptKey: undefined,
-    imagesPath: undefined,
+    imagesPath: "/assets/images/",
     restoreState: "REQUEST_USER", //AUTO, AUTO_NOTIFICATION, REQUEST_USER, NEVER
     I18n: undefined,
     browserRestrictions: {
@@ -66,17 +53,35 @@ export default function ESCAPP(options){
     puzzlesRequirements: true,
   };
 
-  // Settings merged with defaults and extended options
-  let settings = Utils.deepMerge(defaults, options);
-  if(typeof settings.encryptKey === "undefined"){
-    settings.encryptKey = settings.localStorageKey;
-  }
+  let defaultERState = {
+    puzzlesSolved: [], 
+    puzzleData: {},
+    progress: 0,
+    score: 0,
+    nPuzzles: undefined,
+    hintsAllowed: undefined,
+    startTime: undefined,
+    remainingTime: undefined,
+    teamId: undefined,
+    teamMembers: undefined,
+    ranking: undefined
+  };
+
 
   //////////////////
   // Init
   //////////////////
 
   this.init = function(){
+    // Find environmentSettings provided through a global JavaScript variable named "ESCAPP_CLIENT_SETTINGS"
+    let environmentSettings = this.getEnvironmentSettings();
+
+    // Merge defaultSettings and environmentSettings to obtain final settings
+    settings = Utils.deepMerge(defaultSettings, environmentSettings);
+    if(typeof settings.encryptKey === "undefined"){
+      settings.encryptKey = settings.localStorageKey;
+    }
+
     //Check URL params
     let URL_params = Utils.getParamsFromCurrentUrl();
     if(typeof URL_params.escapp_endpoint !== "undefined"){
@@ -88,9 +93,9 @@ export default function ESCAPP(options){
     LocalStorage.init(settings.localStorageKey);
     Encrypt.init(settings.encryptKey);
     Dialogs.init({imagesPath: settings.imagesPath});
-    Notifications.init({enabled: settings.notifications, imagesPath: settings.imagesPath});
+    Notifications.init({enabled: settings.notifications});
     Animations.init({imagesPath: settings.imagesPath});
-    Events.init({endpoint: settings.endpoint, imagesPath: settings.imagesPath, escapp: this});
+    Events.init({endpoint: settings.endpoint, escapp: this});
     Countdown.init({enabled: ((Notifications.isEnabled())&&(settings.countdown)), escapp: this});
 
     //Get user from LocalStorage
@@ -117,12 +122,32 @@ export default function ESCAPP(options){
     //Get escape room state from LocalStorage
     let localErState = LocalStorage.getSetting("localErState");
     if(this.validateERState(localErState)===false){
-      localErState = Utils.deepMerge({}, DEFAULT_ESCAPP_ER_STATE);
+      localErState = Utils.deepMerge({}, defaultERState);
     }
     settings.localErState = localErState;
     LocalStorage.saveSetting("localErState",settings.localErState);
   };
 
+  this.getEnvironmentSettings = function(){
+    let win = window;
+    let attempts = 0;
+    let limit = 10;
+    
+    try {
+      while ((typeof win.ESCAPP_CLIENT_SETTINGS != "object") && (win.parent) && (win.parent !== win) && (attempts <= limit)){
+          attempts += 1;
+          win = win.parent;
+      }
+    } catch (e) {
+      //Catch cross domain issues
+    }
+
+    if(typeof win.ESCAPP_CLIENT_SETTINGS == "object"){
+      return win.ESCAPP_CLIENT_SETTINGS;
+    } else {
+      return undefined;
+    }
+  };
 
   //////////////////
   // Client API
@@ -544,7 +569,7 @@ export default function ESCAPP(options){
       authenthicated: false,
       participation: undefined
     };
-    settings.localErState = DEFAULT_ESCAPP_ER_STATE;
+    settings.localErState = defaultERState;
     settings.remoteErState = undefined;
     LocalStorage.removeSetting("localErState");
     LocalStorage.removeSetting("user");

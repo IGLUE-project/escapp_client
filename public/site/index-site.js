@@ -1,78 +1,114 @@
 let escapp;
+let puzzleId = 1;
 
 $(document).ready(function(){
-	console.log("Init escapp with options:");
-	if(window['escapp_environment']==="production"){
-		CONFIG.imagesPath = "./images/";
-	}
-	CONFIG.onNewErStateCallback = function(er_state){
+	ESCAPP_CLIENT_SETTINGS.onNewErStateCallback = function(erState){
 		console.log("onNewErStateCallback");
-		console.log(er_state);
+		console.log(erState);
 	};
-	CONFIG.onErRestartCallback = function(er_state){
+	ESCAPP_CLIENT_SETTINGS.onErRestartCallback = function(erState){
 		console.log("onErRestartCallback");
-		console.log(er_state);
+		console.log(erState);
 	};
-	console.log(CONFIG);
-	escapp = new ESCAPP(CONFIG);
+	console.log("Init Escapp client with ESCAPP_CLIENT_SETTINGS:");
+	console.log(ESCAPP_CLIENT_SETTINGS);
+	escapp = new ESCAPP();
+	console.log("Escapp client settings after initiation:");
+	console.log(escapp.getSettings());
+
 	loadEvents();
 });
 
 let loadEvents = function(){
 	$("#validate").click(function(){
-		escapp.validate(function(success,er_state){
+		escapp.validate(function(success,erState){
 			if(success===true){
 				console.log("Browser validated and user validated (authenticated, authorized and participation verified)");
 				console.log("State to restore:");
-				console.log(er_state);
+				console.log(erState);
 			} else {
 				console.log("Browser not supported");
 			}
 		});
 	});
+
 	$("#auth").click(function(){
-		escapp.validateUser(function(success,er_state){
+		escapp.validateUser(function(success,erState){
 			console.log("User validated (authenticated, authorized and participation verified)");
 			console.log("State to restore:");
-			console.log(er_state);
+			console.log(erState);
 		});
 	});
+
 	$("#rstate").click(function(){
-		escapp.retrieveState(function(success, er_state){
+		escapp.retrieveState(function(success, erState){
 			if(success===true){
 				console.log("State to restore retrieved:");
-				console.log(er_state);
+				console.log(erState);
 			} else {
 				console.log("No state is going to be restored.");
 			}
 		});
 	});
 
-	let puzzle_id = 1;
-	$("#spuzzle").click(function(){
-		let solution = "1234";
-		let options = {};
-		escapp.submitPuzzle(puzzle_id,solution,options,function(success,res){
-			//Puzzle submitted
-			console.log("Puzzle submitted (puzzle_id = " + puzzle_id + ")");
-			console.log("Success: " + success);
-			console.log("Full escapp response:");
-			console.log(res);
-			if(success === true){
-				puzzle_id = puzzle_id + 1;
+	$("#externalApp").click(function(e){
+		let appUrl = $("#externalApp").attr("href");
+		$("#externalApp").attr("href",escapp.addEscappSettingsToUrl(appUrl));
+
+	});
+
+	$("#ldata").click(function(){
+		puzzleId = 0;
+		escapp.reset(function(){
+			console.log("Local data removed");
+		});
+	});
+
+	$("#spuzzle, #pdialog").click(function(){
+		let dialogOptions = {};
+		// dialogOptions.inputs = [{"type":"password"}];
+		escapp.displayPuzzleDialog("Puzzle " + puzzleId,"Introduce the solution to the puzzle",dialogOptions,function(dialogResponse){
+			//On close dialog callback
+			if(dialogResponse.choice === "ok"){
+				let puzzleSolution = dialogResponse.value;
+				console.log("Puzzle solution sent: " + puzzleSolution);
+				escapp.submitPuzzle(puzzleId,puzzleSolution,{},function(success,res){
+					//Puzzle submitted
+					console.log("Puzzle submitted (puzzleId = " + puzzleId + ")");
+					console.log("Success: " + success);
+					console.log("Full Escapp response:");
+					console.log(res);
+					if(success === true){
+						puzzleId = puzzleId + 1;
+					}
+				});
+			} else {
+				console.log("No puzzle solution was specified");
 			}
 		});
 	});
 
 	$("#cpuzzle").click(function(){
-		let solution = "1234";
-		let options = {};
-		escapp.checkPuzzle(puzzle_id,solution,options,function(success,res){
-			//Puzzle checked
-			console.log("Puzzle checked (puzzle_id = " + puzzle_id + ")");
-			console.log("Success: " + success);
-			console.log("Full escapp response:");
-			console.log(res);
+		let dialogOptions = {};
+		// dialogOptions.inputs = [{"type":"password"}];
+		escapp.displayPuzzleDialog("Puzzle " + puzzleId,"Introduce the solution to the puzzle",dialogOptions,function(dialogResponse){
+			//On close dialog callback
+			if(dialogResponse.choice === "ok"){
+				let puzzleSolution = dialogResponse.value;
+				console.log("Puzzle solution sent: " + puzzleSolution);
+				escapp.checkPuzzle(puzzleId,puzzleSolution,{},function(success,res){
+					//Puzzle submitted
+					console.log("Puzzle checked (puzzleId = " + puzzleId + ")");
+					console.log("Success: " + success);
+					console.log("Full Escapp response:");
+					console.log(res);
+					if(success === true){
+						puzzleId = puzzleId + 1;
+					}
+				});
+			} else {
+				console.log("No puzzle solution was specified");
+			}
 		});
 	});
 	
@@ -81,28 +117,19 @@ let loadEvents = function(){
 			//On close dialog callback
 		});
 	});
-	$("#cosdialog").click(function(){
-		escapp.displayCompletionDialog({},function(){
-			//On close dialog callback
-		});
-	});
+
 	$("#cdialog").click(function(){
 		escapp.displayCustomDialog("Dialog title","Content of the custom dialog",{},function(){
 			//On close dialog callback
 		});
 	});
-	$("#pdialog").click(function(){
-		let dialogOptions = {};
-		// dialogOptions.inputs = [{"type":"password"}];
-		escapp.displayPuzzleDialog("Puzzle title","Request puzzle solution",dialogOptions,function(dialogResponse){
+
+	$("#scdialog").click(function(){
+		escapp.displayCompletionDialog({},function(){
 			//On close dialog callback
-			if(dialogResponse.choice === "ok"){
-				console.log("Puzzle solution: " + dialogResponse.value);
-			} else {
-				console.log("No puzzle solution was specified");
-			}
 		});
 	});
+
 	$("#notification").click(function(){
 		escapp.displayCustomEscappNotification("Content of the custom escapp notification");
 		// escapp.displayCustomNotification("Content of the custom ranking notification",{type: "ranking"});
@@ -116,24 +143,8 @@ let loadEvents = function(){
 	$("#startAnimation").click(function(){
 		escapp.startAnimation("confetti");
 	});
+
 	$("#stopAnimation").click(function(){
 		escapp.stopAnimation("confetti");
-	});
-	$("#ldata").click(function(){
-		puzzle_id = 0;
-		escapp.reset(function(){
-			console.log("Local data removed");
-		});
-	});
-	$("#rdata").click(function(){
-		escapp.displayCustomDialog("Not supported","Remote data remove not supported yet");
-	});
-	$("#adata").click(function(){
-		escapp.displayCustomDialog("Not supported","Remote data remove not supported yet");
-	});
-	$("#externalApp").click(function(e){
-		let appUrl = $("#externalApp").attr("href");
-		$("#externalApp").attr("href",escapp.addEscappSettingsToUrl(appUrl));
-
 	});
 }

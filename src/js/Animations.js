@@ -11,7 +11,7 @@ export function init(options){
 		return;
 	}
 	initialized = true;
-	imagesPath = options.imagesPath || "/assets/images/";
+	imagesPath = options.imagesPath;
 };
 
 export function startAnimation(animation,time){

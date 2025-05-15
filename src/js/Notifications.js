@@ -6,7 +6,6 @@ import '../styles/notifications.scss';
 
 let initialized = false;
 let enabled = false;
-let imagesPath;
 
 let hideTimer;
 let isHideTimerRunning = false;
@@ -28,8 +27,6 @@ export function init(options){
     default:
       enabled = false;
   }
-
-  imagesPath = options.imagesPath || "/assets/images/";
 
   //Escapp is the default boostrap style. Will be overriden from CSS.
   $.notify.addStyle("escapp", {
