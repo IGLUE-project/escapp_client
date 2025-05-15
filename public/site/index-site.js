@@ -14,7 +14,7 @@ $(document).ready(function(){
 	}
 	console.log("Init Escapp client with ESCAPP_CLIENT_SETTINGS:");
 	console.log(ESCAPP_CLIENT_SETTINGS);
-	escapp = new ESCAPP();
+	escapp = new ESCAPP(ESCAPP_CLIENT_SETTINGS);
 	console.log("Escapp client settings after initiation:");
 	console.log(escapp.getSettings());
 

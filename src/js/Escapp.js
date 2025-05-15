@@ -11,7 +11,7 @@ import * as Animations from './Animations.js';
 import * as Events from './Events.js';
 import * as Countdown from './Countdown.js';
 
-export default function ESCAPP(){
+export default function ESCAPP(_settings){
 
   //Settings
   let settings = {};
@@ -72,16 +72,18 @@ export default function ESCAPP(){
   // Init
   //////////////////
 
-  this.init = function(){
-    // Find environmentSettings provided through a global JavaScript variable named "ESCAPP_CLIENT_SETTINGS"
-    let environmentSettings = this.getEnvironmentSettings();
-
-    if(typeof environmentSettings != "object"){
-      return alert("Escapp Client could not be started correctly because the object window.ESCAPP_CLIENT_SETTINGS was not found.");
+  this.init = function(_settings){
+    if(typeof _settings != "object"){
+      // Find _settings provided through a global JavaScript variable named "ESCAPP_CLIENT_SETTINGS"
+      _settings = this.getSettingsFromEnvironment();
     }
-    
-    // Merge defaultSettings and environmentSettings to obtain final settings
-    settings = Utils.deepMerge(defaultSettings, environmentSettings);
+
+    if(typeof _settings != "object"){
+      return alert("Escapp Client could not be started correctly because initial settings were not provided.");
+    }
+
+    // Merge defaultSettings and _settings to obtain final settings
+    settings = Utils.deepMerge(defaultSettings, _settings);
     if(typeof settings.encryptKey === "undefined"){
       settings.encryptKey = settings.localStorageKey;
     }
@@ -132,7 +134,7 @@ export default function ESCAPP(){
     LocalStorage.saveSetting("localErState",settings.localErState);
   };
 
-  this.getEnvironmentSettings = function(){
+  this.getSettingsFromEnvironment = function(){
     let win = window;
     let attempts = 0;
     let limit = 10;
@@ -1113,7 +1115,7 @@ export default function ESCAPP(){
 
 
   //Initialization
-  this.init();
+  this.init(_settings);
 
   //Validate after init if autovalidation is enabled
   if(settings.autovalidate === true){

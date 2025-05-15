@@ -7,7 +7,7 @@ let LOCALES = {
   },
 };
 
-window.ESCAPP_CLIENT_SETTINGS = {
+let ESCAPP_CLIENT_SETTINGS = {
   endpoint:"https://escapp.es/api/escapeRooms/id",
   appPuzzleIds: [1],
   localStorageKey:"LocalStorageKey",
