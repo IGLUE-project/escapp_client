@@ -1,4 +1,4 @@
-/* Notify.js - http://notifyjs.com/ Copyright (c) 2015 MIT */
+/* Based on Notify.js - http://notifyjs.com/ Copyright (c) 2015 MIT */
 (function (factory) {
 	// Browser globals
 	factory(jQuery);

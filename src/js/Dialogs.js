@@ -1,4 +1,3 @@
-import './jquery-3.7.1.min.js';
 import * as I18n from './I18n.js';
 import MicroModal from './MicroModal.js';
 import '../styles/dialogs.scss';

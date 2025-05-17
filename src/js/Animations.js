@@ -1,4 +1,3 @@
-import './jquery-3.7.1.min.js';
 import * as Confetti from './animations/Confetti.js';
 import * as I18n from './I18n.js';
 

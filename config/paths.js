@@ -4,6 +4,7 @@ module.exports = {
   // Source files
   src: path.resolve(__dirname, '../src'),
   index: path.resolve(__dirname, '../src/index.html'),
+  jQuery: path.resolve(__dirname, '../src/js/jquery-3.7.1.min.js'),
 
   // Production build files
   build: path.resolve(__dirname, '../dist'),

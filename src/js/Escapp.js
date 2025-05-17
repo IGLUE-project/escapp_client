@@ -1,6 +1,7 @@
 import 'es6-promise';
 import "isomorphic-fetch";
 import Bowser from "bowser";
+import 'jQuery';
 import * as Utils from './Utils.js';
 import * as I18n from './I18n.js';
 import * as LocalStorage from './Storage.js';

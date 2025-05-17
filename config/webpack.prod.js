@@ -48,7 +48,7 @@ module.exports = merge(common, {
         },
         {
           from: paths.license,
-          to: '',
+          to: 'escapp.js.LICENSE',
           noErrorOnMissing: true,
         },
       ],

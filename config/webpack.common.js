@@ -1,4 +1,5 @@
 const paths = require('./paths')
+const webpack = require('webpack')
 
 module.exports = {
   // Where webpack looks to start building the bundle
@@ -41,6 +42,14 @@ module.exports = {
     extensions: ['.js', '.jsx', '.json'],
     alias: {
       '@': paths.src,
+      jQuery: paths.jQuery,
     },
   },
+
+  plugins: [
+    new webpack.ProvidePlugin({
+      $: 'jQuery',
+      jQuery: 'jQuery',
+    }),
+  ],
 }
