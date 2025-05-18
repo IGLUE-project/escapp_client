@@ -60,6 +60,7 @@ export default function ESCAPP(_settings){
     localErState: undefined,
     remoteErState: undefined,
     nextPuzzleId: undefined,
+    allPuzzlesSolved: false,
     teamName: undefined,
     duration: undefined,
     remainingTime: undefined,
@@ -566,6 +567,10 @@ export default function ESCAPP(_settings){
     return settings.nextPuzzleId;
   };
 
+  this.getAllPuzzlesSolved = function(){
+    return settings.allPuzzlesSolved;
+  };
+
   this.start = function(callback){
     let userCredentials = this.getUserCredentials(settings.user);
     if(typeof userCredentials === "undefined"){
@@ -768,8 +773,8 @@ export default function ESCAPP(_settings){
       }
     }
 
-    //Update nextPuzzleId
-    this.updateNextPuzzle();
+    //Update nextPuzzleId and allPuzzlesSolved
+    this.updateAppPuzzlesState();
 
     //Progress and score
     this.updateTrackingLocalErState();
@@ -814,19 +819,23 @@ export default function ESCAPP(_settings){
     }
   };
 
-  this.updateNextPuzzle = function(){
+  this.updateAppPuzzlesState = function(){
      let _nextPuzzleId;
+     let _allPuzzlesSolved = false;
+
      if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
       if((typeof settings.localErState === "object")&&(settings.localErState.puzzlesSolved instanceof Array)){
         let puzzlesUnsolved = settings.linkedPuzzleIds.filter(puzzleId => !settings.localErState.puzzlesSolved.includes(puzzleId));
         if(puzzlesUnsolved.length > 0){
           _nextPuzzleId = Math.min(...puzzlesUnsolved);
         } else {
+          _allPuzzlesSolved = true;
           _nextPuzzleId = Math.max(...settings.linkedPuzzleIds);
         }
       }
     }
     settings.nextPuzzleId = _nextPuzzleId;
+    settings.allPuzzlesSolved = _allPuzzlesSolved;
   };
 
   this.getNewestState = function(){
