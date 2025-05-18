@@ -28,11 +28,7 @@ let ESCAPP_CLIENT_SETTINGS = {
 
 //Config example for reusable puzzles
 
-let ESCAPP_CLIENT_SETTINGS = {
-  reusablePuzzle: true,
-}
-
-window.ESCAPP_REUSABLE_PUZZLE_SETTINGS = {
+window.ESCAPP_APP_SETTINGS = {
   solutionLength: 5,
   escappClientSettings: {
     endpoint:"https://escapp.es/api/escapeRooms/id",

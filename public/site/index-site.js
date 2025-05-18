@@ -1,24 +1,21 @@
 let escapp;
 
-$(document).ready(function(){
-	if(typeof ESCAPP_CLIENT_SETTINGS == "object"){
-		ESCAPP_CLIENT_SETTINGS.onNewErStateCallback = function(erState){
-			console.log("onNewErStateCallback");
-			console.log(erState);
-		};
-		ESCAPP_CLIENT_SETTINGS.onErRestartCallback = function(erState){
-			console.log("onErRestartCallback");
-			console.log(erState);
-		};
+document.addEventListener("DOMContentLoaded", function() {
+    if(typeof ESCAPP_CLIENT_SETTINGS != "object"){
+		ESCAPP_CLIENT_SETTINGS = {};
 	}
-	console.log("Init Escapp client with ESCAPP_CLIENT_SETTINGS:");
-	console.log(ESCAPP_CLIENT_SETTINGS);
+	ESCAPP_CLIENT_SETTINGS.jQuery = true;
+	ESCAPP_CLIENT_SETTINGS.onNewErStateCallback = function(erState){
+		console.log("onNewErStateCallback");
+		console.log(erState);
+	};
+	ESCAPP_CLIENT_SETTINGS.onErRestartCallback = function(erState){
+		console.log("onErRestartCallback");
+		console.log(erState);
+	};
 	escapp = new ESCAPP(ESCAPP_CLIENT_SETTINGS);
-	console.log("Escapp client settings after initiation:");
-	console.log(escapp.getSettings());
-	console.log("Reusable puzzle settings:");
-	console.log(escapp.getReusablePuzzleSettings());
-
+	console.log("Escapp client initiated with settings:", escapp.getSettings());
+	console.log("App settings", escapp.getAppSettings());
 	loadEvents();
 });
 

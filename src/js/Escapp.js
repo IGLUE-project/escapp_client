@@ -16,7 +16,7 @@ export default function ESCAPP(_settings){
 
   //Settings
   let settings = {};
-  let reusablePuzzleSettings = {};
+  let appSettings = {};
 
   let defaultSettings = {
     endpoint: undefined,
@@ -42,6 +42,7 @@ export default function ESCAPP(_settings){
     },
     browserRestrictionsDefault: true,
     countdown: true,
+    jQuery: false,
     initCallback: undefined,
     onNewErStateCallback: undefined,
     onErRestartCallback: undefined,
@@ -85,29 +86,28 @@ export default function ESCAPP(_settings){
 
   this.init = function(_settings){
     //Obtain and process settings
-    if(typeof _settings !== "object"){
-      return alert("Escapp Client could not be started correctly because initial settings were not provided.");
+    if(typeof _settings != "object"){
+      _settings = {};
     }
 
-    if(_settings.reusablePuzzle === true){
-      // Find _settings provided by Escapp through a global JavaScript variable named "ESCAPP_REUSABLE_PUZZLE_SETTINGS"
-      let _reusablePuzzleSettings = this.getReusablePuzzleSettingsFromEnvironment();
-      if(typeof _reusablePuzzleSettings !== "object"){
-        return alert("Escapp Client could not be started correctly because the JavaScript variable ESCAPP_REUSABLE_PUZZLE_SETTINGS was not found.");
-      }
-
-      if(typeof _reusablePuzzleSettings.escappClientSettings == "object"){
-        _settings = Utils.deepMerge(_settings, Object.assign({}, _reusablePuzzleSettings.escappClientSettings));
-      } else {
-        return alert("Escapp Client could not be started correctly because the reusablePuzzleSettings do not contain escappClientSettings.");
-      }
-
-      _reusablePuzzleSettings = Object.assign({},_reusablePuzzleSettings);
-      delete _reusablePuzzleSettings.escappClientSettings;
-      reusablePuzzleSettings = _reusablePuzzleSettings;
+    // Find _settings provided by the Escapp server through a global JavaScript variable named "ESCAPP_APP_SETTINGS"
+    let _appSettings = this.getAppSettingsFromEnvironment();
+    if(typeof _appSettings !== "object"){
+      _appSettings = {};
+      //return alert("The JavaScript variable ESCAPP_APP_SETTINGS was not found.");
     }
 
-    // Merge defaultSettings and _settings to obtain final settings
+    if(typeof _appSettings.escappClientSettings == "object"){
+      _settings = Utils.deepMerge(_settings, Object.assign({}, _appSettings.escappClientSettings));
+    } else {
+      //return alert("ESCAPP_APP_SETTINGS does not contain escappClientSettings.");
+    }
+
+    _appSettings = Object.assign({},_appSettings);
+    delete _appSettings.escappClientSettings;
+    appSettings = _appSettings;
+
+    // Merge _settings with defaultSettings and defaultReadOnlySettings to obtain final settings
     settings = Utils.deepMerge(Utils.deepMerge(defaultSettings, _settings), defaultReadOnlySettings);
 
     if((typeof settings.relatedPuzzleIds !== "object")&&(typeof settings.linkedPuzzleIds == "object")){
@@ -179,15 +179,20 @@ export default function ESCAPP(_settings){
     }
     settings.localErState = localErState;
     LocalStorage.saveSetting("localErState",settings.localErState);
+
+    //Include JQuery
+    if((settings.jQuery === true)&&(typeof window.jQuery === "undefined")){
+      window.$ = window.jQuery = this.getJQuery();
+    }
   };
 
-  this.getReusablePuzzleSettingsFromEnvironment = function(){
+  this.getAppSettingsFromEnvironment = function(){
     let win = window;
     let attempts = 0;
-    let limit = 10;
+    let limit = 1;
     
     try {
-      while ((typeof win.ESCAPP_REUSABLE_PUZZLE_SETTINGS !== "object") && (win.parent) && (win.parent !== win) && (attempts <= limit)){
+      while ((typeof win.ESCAPP_APP_SETTINGS !== "object") && (win.parent) && (win.parent !== win) && (attempts <= limit)){
           attempts += 1;
           win = win.parent;
       }
@@ -195,8 +200,8 @@ export default function ESCAPP(_settings){
       //Catch cross domain issues
     }
 
-    if(typeof win.ESCAPP_REUSABLE_PUZZLE_SETTINGS == "object"){
-      return win.ESCAPP_REUSABLE_PUZZLE_SETTINGS;
+    if(typeof win.ESCAPP_APP_SETTINGS == "object"){
+      return win.ESCAPP_APP_SETTINGS;
     } else {
       return undefined;
     }
@@ -934,15 +939,19 @@ export default function ESCAPP(_settings){
 
 
   //////////////////
-  // Utils for subcomponents
+  // Utils for apps and subcomponents
   //////////////////
 
   this.getSettings = function(){
     return settings;
   };
 
-  this.getReusablePuzzleSettings = function(){
-    return reusablePuzzleSettings;
+  this.getAppSettings = function(){
+    return appSettings;
+  };
+
+  this.getJQuery = function(){
+    return jQuery;
   };
 
   this.isEREnded = function(){
