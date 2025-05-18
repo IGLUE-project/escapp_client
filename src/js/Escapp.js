@@ -5,6 +5,7 @@ import 'jQuery';
 import * as Utils from './Utils.js';
 import * as I18n from './I18n.js';
 import * as LocalStorage from './Storage.js';
+import * as LocalStorageApp from './StorageApp.js';
 import * as Encrypt from './Encrypt.js';
 import * as Dialogs from './Dialogs.js';
 import * as Notifications from './Notifications.js';
@@ -145,6 +146,7 @@ export default function ESCAPP(_settings){
     //Init modules
     I18n.init(settings.I18n);
     LocalStorage.init(settings.localStorageKey);
+    LocalStorageApp.init(LocalStorage);
     Encrypt.init(settings.encryptKey);
     Dialogs.init({imagesPath: settings.imagesPath});
     Notifications.init({enabled: settings.notifications});
@@ -949,6 +951,10 @@ export default function ESCAPP(_settings){
   this.getAppSettings = function(){
     return appSettings;
   };
+
+  this.getStorage = function(){
+    return LocalStorageApp;
+  }
 
   this.getJQuery = function(){
     return jQuery;

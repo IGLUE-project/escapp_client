@@ -87,3 +87,41 @@ export function clear(){
   localStorage.removeItem(storageKey);
   return undefined;
 }
+
+export function getChildSetting(parentSetting,settingName){
+  if(ls_supported === false){
+    return undefined;
+  }
+  let data = getSetting(parentSetting);
+  if(typeof data === "object"){
+    return data[settingName];
+  }
+  return undefined;
+}
+
+export function saveChildSetting(parentSetting,settingName,value){
+  if(ls_supported === false){
+    return undefined;
+  }
+  let data = getSetting(parentSetting);
+  if(typeof data === "undefined"){
+    data = {};
+  }
+  if(typeof data === "object"){
+    data[settingName] = value;
+    return saveSetting(parentSetting,data);
+  }
+  return undefined;
+}
+
+export function removeChildSetting(parentSetting,settingName){
+  if(ls_supported === false){
+    return undefined;
+  }
+  let data = getSetting(parentSetting);
+  if(typeof data === "object"){
+    delete data[settingName];
+    return saveSetting(parentSetting,data);
+  }
+  return undefined;
+}
