@@ -463,20 +463,29 @@ export default function ESCAPP(_settings){
 
   this.retrieveState = function(callback){
     this.auth(settings.user,function(success){
-      if((success)&&(settings.user.authenticated)&&(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) !== -1)){
-        //User is authenticated and a participant.
-        if (settings.user.participation === "NOT_STARTED"){
-          //User is authenticated and a participant, but the escape room needs to be started.
-          //Ask the participant if he/she wants to start the escape room.
-          this.startEscapeRoom(function(started){
-            if(started === true){
-              return this.validateUserAfterAuth(callback);
-            } else {
-              return this.validateUser(callback);
-            }
-          }.bind(this));
+      if((success)&&(settings.user.authenticated)){
+        //User is authenticated.
+        if(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) !== -1){
+          //User is a valid participant.
+          if (settings.user.participation === "NOT_STARTED"){
+            //User is authenticated and a participant, but the escape room needs to be started.
+            //Ask the participant if he/she wants to start the escape room.
+            this.startEscapeRoom(function(started){
+              if(started === true){
+                return this.validateUserAfterAuth(callback);
+              } else {
+                return this.validateUser(callback);
+              }
+            }.bind(this));
+          } else {
+            return this.validateUserAfterAuth(callback);
+          }
         } else {
-          return this.validateUserAfterAuth(callback);
+          this.displayUserParticipationErrorDialog(function(){
+            if(typeof callback === "function"){
+              callback(false, undefined);
+            }
+          });
         }
       } else {
         if(typeof callback === "function"){
@@ -961,9 +970,16 @@ export default function ESCAPP(_settings){
     return appSettings;
   };
 
+  this.registerCallback = function(callbackName, callbackFunction){
+    const callbackNames = ["initCallback", "onNewErStateCallback", "onErRestartCallback"];
+    if((typeof callbackName === "string")&&(callbackNames.indexOf(callbackName) != -1)&&(typeof callbackFunction === "function")){
+      settings[callbackName] = callbackFunction;
+    }
+  };
+
   this.getStorage = function(){
     return LocalStorageApp;
-  }
+  };
 
   this.getJQuery = function(){
     return jQuery;
