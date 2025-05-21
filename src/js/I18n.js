@@ -83,6 +83,11 @@ export function getTrans(s, params){
     return getTransWithParams(LOCALES[settings.defaultLocale][s], params);
   }
 
+  // EN locale
+  if((settings.locale !== "EN") && (settings.defaultLocale !== "EN") && (typeof LOCALES["en"] !== "undefined") && (typeof LOCALES["en"][s] === "string")){
+    return getTransWithParams(LOCALES["en"][s], params);
+  }
+
   return undefined;
 }
 

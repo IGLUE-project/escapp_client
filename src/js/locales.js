@@ -19,6 +19,11 @@ export let ESCAPP_LOCALES = {
     "i.completion_title":"¡Escape Room Completed!",
     "i.completion_text":"¡Congratulations! You have completed the escape room. On the escapp platform you can check the ranking to see in which position you have ended.",
 
+    "i.initialization_error_title":"Initialization error",
+    "i.initialization_error_endpoint":"Escapp Client could not be started correctly because the Escapp endpoint was not provided.",
+    "i.initialization_error_endpoint_format":"Escapp Client could not be started correctly because the format of the provided Escapp endpoint is incorrect.",
+    "i.initialization_error_linkedPuzzleIds":"Escapp Client could not be started correctly because neither resourceId nor linkedPuzzleIds were provided.",
+
     "i.participation_error_TOO_LATE":"You are a participant of this escape room but the turn you have signed up for has ended or you have run out of time.",
     "i.participation_error_NOT_ACTIVE":"You are a participant of this escape room but the turn you have signed up for has not started yet.",
     "i.participation_error_NOT_STARTED":"You are a participant of this escape room but you need to click on the 'Start' button in the Escapp platform in order to start the escape room.",

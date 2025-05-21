@@ -88,6 +88,8 @@ export default function ESCAPP(_settings){
 
   this.init = function(_settings){
     //Obtain and process settings
+    let _criticalErrors = [];
+
     if(typeof _settings != "object"){
       _settings = {};
     }
@@ -121,19 +123,20 @@ export default function ESCAPP(_settings){
     if(typeof URL_params.escapp_endpoint !== "undefined"){
       settings.endpoint = Utils.checkUrlProtocol(URL_params.escapp_endpoint);
     }
-    if(typeof settings.endpoint !== "string"){
-      return alert("Escapp Client could not be started correctly because the Escapp endpoint was not provided.");
-    }
-    settings.erId = this.getERIdFromEscappEndpoint(settings.endpoint);
-    if((this.isValidEscappEndpoint(settings.endpoint)==="false")||(typeof settings.erId !== "string")){
-      return alert("Escapp Client could not be started correctly because the format of the provided Escapp endpoint is incorrect.");
+    if(typeof settings.endpoint === "string"){
+      settings.erId = this.getERIdFromEscappEndpoint(settings.endpoint);
+      if((this.isValidEscappEndpoint(settings.endpoint)==="false")||(typeof settings.erId !== "string")){
+        _criticalErrors.push("i.initialization_error_endpoint_format");
+      }
+    } else {
+      _criticalErrors.push("i.initialization_error_endpoint");
     }
 
     if(typeof settings.resourceId === "undefined"){
       if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
         settings.resourceId = settings.linkedPuzzleIds.join("-");
       } else {
-        return alert("Escapp Client could not be started correctly because neither resourceId nor linkedPuzzleIds were provided.");
+        _criticalErrors.push("i.initialization_error_linkedPuzzleIds");
       }
     }
 
@@ -186,6 +189,11 @@ export default function ESCAPP(_settings){
     //Include JQuery
     if((settings.jQuery === true)&&(typeof window.jQuery === "undefined")){
       window.$ = window.jQuery = this.getJQuery();
+    }
+
+    //Critical errors
+    if(_criticalErrors.length > 0 ){
+      this.displayCustomDialog(I18n.getTrans("i.initialization_error_title"),(_criticalErrors[0].startsWith("i.") ? I18n.getTrans(_criticalErrors[0]) : _criticalErrors[0]),{});
     }
   };
 

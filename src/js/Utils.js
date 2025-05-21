@@ -111,7 +111,7 @@ var getProtocol = function(){
     }
   }
   return protocol;
-}
+};
 
 export function validateEmail(email){
   if(typeof email !== "string") return false;
