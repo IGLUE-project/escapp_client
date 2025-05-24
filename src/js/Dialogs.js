@@ -1,5 +1,5 @@
 import * as I18n from './I18n.js';
-import MicroModal from './MicroModal.js';
+import MicroModal from './Micromodal.js';
 import '../styles/dialogs.scss';
 
 let initialized = false;

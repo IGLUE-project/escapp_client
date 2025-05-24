@@ -1,3 +1,5 @@
+/* Based on Micromodal.js - https://github.com/micromodal/Micromodal Copyright (c) 2017 Indrashish Ghosh, MIT */
+
 export default (function() { 
   'use strict';
 
@@ -21,6 +23,7 @@ export default (function() {
         inputs = undefined,
         buttons = undefined,
       }) {
+
         // Save a reference of the modal
         this.modal = document.getElementById(targetModal); // Save a reference to the passed config
 
@@ -104,12 +107,18 @@ export default (function() {
           dialogResponse.inputs = inputResults;
         }
 
-        if(typeof this.config.buttons !== "undefined"){
+        if((typeof this.config.buttons !== "undefined")&&(this.config.buttons instanceof Array)&&(this.config.buttons.length > 0)){
           //Response attribute of the target element
-          if((typeof event !== "undefined")&&(typeof event.target !== "undefined")){
-            dialogResponse.choice = event.target.getAttribute("response");
-          } else {
-            dialogResponse.choice = false;
+          dialogResponse.choice = false;
+          if(typeof event !== "undefined"){
+            if((event.keyCode === 13)&&(typeof this.config.buttons[0].response === "string")){
+              //Enter key
+              dialogResponse.choice = this.config.buttons[0].response;
+            } else {
+              if ((typeof event.target !== "undefined")&&(typeof event.target.getAttribute("response") === "string")){
+                dialogResponse.choice = event.target.getAttribute("response");
+              }
+            }
           }
         } else {
           dialogResponse.choice = true;
@@ -199,6 +208,7 @@ export default (function() {
           }
         }
         if (event.keyCode === 9) {
+          //Tab key
           this.maintainFocus(event);
         }
       }
@@ -352,6 +362,7 @@ export default (function() {
 
 
     const init = config => {
+     
       // Create an config object with default openTrigger
       const options = Object.assign({}, {
         openTrigger: 'data-micromodal-trigger'
@@ -370,14 +381,13 @@ export default (function() {
         activeModal = new Modal(options); // eslint-disable-line no-new
       }
     };
+
     /**
      * Shows a particular modal
      * @param  {string} targetModal [The id of the modal to display]
      * @param  {object} config [The configuration object to pass]
      * @return {void}
      */
-
-
     const show = (targetModal, config) => {
       const options = config || {};
       options.targetModal = targetModal; // Checks if modals and triggers exist in dom

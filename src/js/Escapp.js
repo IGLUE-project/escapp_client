@@ -22,7 +22,6 @@ export default function ESCAPP(_settings){
   let defaultSettings = {
     endpoint: undefined,
     imagesPath: "/assets/images/",
-    reusablePuzzle: false,
     linkedPuzzleIds: undefined,
     relatedPuzzleIds: undefined,
     requiredPuzzlesIds: undefined,
@@ -30,6 +29,7 @@ export default function ESCAPP(_settings){
       email: undefined,
       token: undefined,
     },
+    silent: false,
     forceValidation: true,
     autovalidate: false,
     notifications: false,
@@ -76,6 +76,7 @@ export default function ESCAPP(_settings){
     hintsAllowed: undefined,
     startTime: undefined,
     remainingTime: undefined,
+    strictTime: false,
     teamId: undefined,
     teamMembers: undefined,
     ranking: undefined
@@ -85,26 +86,28 @@ export default function ESCAPP(_settings){
   //////////////////
   // Init
   //////////////////
+  let initialized = false;
+  let succesfullyInitialized = false;
+  let initializationErrors = [];
+  let isInitializationErrorShown = false;
+  let initializedAfterValidation = false;
 
   this.init = function(_settings){
-    //Obtain and process settings
-    let _criticalErrors = [];
+    if (initialized===true) return;
 
+    //Obtain and process settings
     if(typeof _settings != "object"){
       _settings = {};
     }
 
     // Find _settings provided by the Escapp server through a global JavaScript variable named "ESCAPP_APP_SETTINGS"
-    let _appSettings = this.getAppSettingsFromEnvironment();
+    let _appSettings = this._getAppSettingsFromEnvironment();
     if(typeof _appSettings !== "object"){
       _appSettings = {};
-      //return alert("The JavaScript variable ESCAPP_APP_SETTINGS was not found.");
     }
 
     if(typeof _appSettings.escappClientSettings == "object"){
       _settings = Utils.deepMerge(_settings, Object.assign({}, _appSettings.escappClientSettings));
-    } else {
-      //return alert("ESCAPP_APP_SETTINGS does not contain escappClientSettings.");
     }
 
     _appSettings = Object.assign({},_appSettings);
@@ -113,6 +116,19 @@ export default function ESCAPP(_settings){
 
     // Merge _settings with defaultSettings and defaultReadOnlySettings to obtain final settings
     settings = Utils.deepMerge(Utils.deepMerge(defaultSettings, _settings), defaultReadOnlySettings);
+
+    if(settings.silent === true){
+      settings.forceValidation = false;
+      settings.notifications = false;
+
+      if(settings.restoreState !== "AUTO"){
+        if(["AUTO_NOTIFICATION","REQUEST_USER"].indexOf(settings.restoreState) !== -1){
+          settings.restoreState = "AUTO";
+        } else {
+          settings.restoreState = "NEVER";
+        }
+      }
+    }
 
     if((typeof settings.relatedPuzzleIds !== "object")&&(typeof settings.linkedPuzzleIds == "object")){
       settings.relatedPuzzleIds = settings.linkedPuzzleIds;
@@ -124,19 +140,19 @@ export default function ESCAPP(_settings){
       settings.endpoint = Utils.checkUrlProtocol(URL_params.escapp_endpoint);
     }
     if(typeof settings.endpoint === "string"){
-      settings.erId = this.getERIdFromEscappEndpoint(settings.endpoint);
-      if((this.isValidEscappEndpoint(settings.endpoint)==="false")||(typeof settings.erId !== "string")){
-        _criticalErrors.push("i.initialization_error_endpoint_format");
+      settings.erId = this._getERIdFromEscappEndpoint(settings.endpoint);
+      if((this._isValidEscappEndpoint(settings.endpoint)==="false")||(typeof settings.erId !== "string")){
+        initializationErrors.push("i.initialization_error_endpoint_format");
       }
     } else {
-      _criticalErrors.push("i.initialization_error_endpoint");
+      initializationErrors.push("i.initialization_error_endpoint");
     }
 
     if(typeof settings.resourceId === "undefined"){
       if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
         settings.resourceId = settings.linkedPuzzleIds.join("-");
       } else {
-        _criticalErrors.push("i.initialization_error_linkedPuzzleIds");
+        initializationErrors.push("i.initialization_error_linkedPuzzleIds");
       }
     }
 
@@ -156,18 +172,18 @@ export default function ESCAPP(_settings){
     Notifications.init({enabled: settings.notifications});
     Animations.init({imagesPath: settings.imagesPath});
     Events.init({endpoint: settings.endpoint, escapp: this});
-    Countdown.init({enabled: ((Notifications.isEnabled())&&(settings.countdown)), escapp: this});
+    Countdown.init({notifications: ((Notifications.isEnabled())&&(settings.countdown)), escapp: this});
 
     //User credentials. Priority: settings, URL params, LocalStorage.
-    if(typeof this.getUserCredentials(settings.user) === "undefined"){
+    if(typeof this._getUserCredentials(settings.user) === "undefined"){
       //Get user from URL params
-      let userURL = this.getUserCredentials({email: (URL_params.escapp_email || URL_params.email), token: (URL_params.escapp_token || URL_params.token)});
+      let userURL = this._getUserCredentials({email: (URL_params.escapp_email || URL_params.email), token: (URL_params.escapp_token || URL_params.token)});
       if(typeof userURL !== "undefined"){
         settings.user = userURL;
       } else {
         //Get user from LocalStorage
         let userLS = LocalStorage.getSetting("user");
-        if(typeof this.getUserCredentials(userLS) !== "undefined"){
+        if(typeof this._getUserCredentials(userLS) !== "undefined"){
           settings.user = userLS;
         }
       }
@@ -180,7 +196,7 @@ export default function ESCAPP(_settings){
     
     //Get escape room state from LocalStorage
     let localErState = LocalStorage.getSetting("localErState");
-    if(this.validateERState(localErState)===false){
+    if(this._validateERState(localErState)===false){
       localErState = Utils.deepMerge({}, defaultERState);
     }
     settings.localErState = localErState;
@@ -191,13 +207,13 @@ export default function ESCAPP(_settings){
       window.$ = window.jQuery = this.getJQuery();
     }
 
-    //Critical errors
-    if(_criticalErrors.length > 0 ){
-      this.displayCustomDialog(I18n.getTrans("i.initialization_error_title"),(_criticalErrors[0].startsWith("i.") ? I18n.getTrans(_criticalErrors[0]) : _criticalErrors[0]),{});
-    }
+    initialized = true;
+    succesfullyInitialized = (initializationErrors.length === 0 );
+    this._enableBeforeEachCheckInitialization();
+    this._checkInitialization();
   };
 
-  this.getAppSettingsFromEnvironment = function(){
+  this._getAppSettingsFromEnvironment = function(){
     let win = window;
     let attempts = 0;
     let limit = 1;
@@ -219,9 +235,68 @@ export default function ESCAPP(_settings){
   };
 
 
+  this._isValidEscappEndpoint = function(url) {
+    const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/[0-9]+)$/;
+    return regex.test(url);
+  };
+
+  this._getERIdFromEscappEndpoint = function(url) {
+    const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/([0-9]+))$/;
+    const match = url.match(regex);
+    return match ? (parseInt(match[2], 10) + "") : undefined;
+  };
+
+  this._enableBeforeEachCheckInitialization = function() {
+    const functionNames = Object.keys(this);
+    const excludedFunctionNames = ['init','getSettings','getAppSettings','isSupported'];
+
+    for (const name of functionNames) {
+      const isFunction = typeof this[name] === 'function';
+      const isPrivate = name.startsWith('_');
+      const isExcluded = excludedFunctionNames.includes(name);
+      if (!isFunction || name === 'constructor' || isPrivate || isExcluded) continue;
+
+      const original = this[name].bind(this);
+      this[name] = (...args) => {
+        if (this._checkInitialization() === false) return;
+        return original(...args);
+      };
+    }
+  };
+
+  this._checkInitialization = function(){
+    if(!succesfullyInitialized){
+      this._displayInitializationErrorDialog();
+      return false;
+    }
+    return true;
+  };
+
+
   //////////////////
-  // Client API
+  // Validation and Authentication
   //////////////////
+
+  this._getUserCredentials = function(user){
+    if((typeof user !== "object")||(typeof user.email !== "string")||((typeof user.token !== "string")&&(typeof user.password !== "string"))){
+      return undefined;
+    }
+    let userCredentials = {email: user.email};
+    if(typeof user.token === "string"){
+      userCredentials.token = user.token;
+    } else {
+      userCredentials.password = user.password;
+    }
+    return userCredentials;
+  };
+
+  this._resetUserCredentials = function(){
+    settings.user = Object.assign({}, defaultReadOnlySettings.user);
+    settings.localErState = defaultERState;
+    settings.remoteErState = undefined;
+    LocalStorage.removeSetting("localErState");
+    LocalStorage.removeSetting("user");
+  };
 
   this.isSupported = function(){
     let isValidBrowser;
@@ -247,45 +322,175 @@ export default function ESCAPP(_settings){
   };
 
   this.validate = function(callback){
-    if(this.isSupported() === true){
-      return this.validateUser(callback);
-    } else {
-      return this.displayCustomEscappDialog(I18n.getTrans("i.not_supported_title"),I18n.getTrans("i.not_supported_text"),{},function(response){
-        if(typeof callback === "function"){
-          callback(false,undefined);
-        }
-      });
-    }
+    if (this.isSupported()) return this.validateUser(callback);
+    if (settings.silent) return this._safeCall(callback, false);
+    return this.displayCustomEscappDialog(I18n.getTrans("i.not_supported_title"),I18n.getTrans("i.not_supported_text"),{},function(response){
+      this._safeCall(callback, false);
+    }.bind(this));
   };
 
   this.validateUser = function(callback){
     if((typeof settings.user !== "object")||(typeof settings.user.token !== "string")){
       //User does not have auth credentials.
-      this.displayUserAuthDialog(true,function(success){
-        if((success)||(settings.forceValidation===false)){
-          return this.validateUserAfterAuth(callback);
-        } else {
-          this.resetUserCredentials();
-          return this.validateUser(callback);
-        }
+      if (settings.silent) return this._safeCall(callback, false);
+      this._displayUserAuthDialog(true,function(dialogResponse){
+        this._onUserAuthDialogResponse(dialogResponse, function(success){
+          if(success){
+            return this._validateUserAfterAuth(callback);
+          } else {
+            return this._onValidateUserFail(callback);
+          }
+        }.bind(this));
       }.bind(this));
     } else {
       //User has auth credentials.
       this.retrieveState(function(success,erState){
-        if((success)||(settings.forceValidation===false)){
-          if(typeof callback === "function"){
-            callback(success,erState);
-          }
+        if((success)||(settings.silent)||(!settings.forceValidation)){
+          return this._safeCall(callback, success, erState);
         } else {
-          this.resetUserCredentials();
-          return this.validateUser(callback);
+          return this._onValidateUserFail(callback);
         }
       }.bind(this));
     }
   };
 
-  this.isUserLoggedIn = function(){
-    return (settings.user.authenticated === true);
+  this._onUserAuthDialogResponse = function(dialogResponse, callback){
+    if((dialogResponse.choice==="ok")||(settings.forceValidation!==false)){
+      let user = {email: dialogResponse.inputs[0], password:dialogResponse.inputs[1]};
+      this._auth(user,function(success){
+        if(settings.user.authenticated === true){
+          // User authentication succesfull
+          switch(settings.user.participation){
+            case "PARTICIPANT":
+              //User is authenticated, user is a participant, and the escape room has been started.
+              this._safeCall(callback, true);
+            case "NOT_STARTED":
+              //User is authenticated and a participant, but the escape room needs to be started.
+              //Ask the participant if he/she wants to start the escape room.
+              this._startEscapeRoom(function(started){
+                this._safeCall(callback, started);
+              }.bind(this));
+              break;
+            case "NOT_A_PARTICIPANT":
+            case "AUTHOR":
+            case "NOT_ACTIVE":
+            case "TOO_LATE":
+              //User is authenticated but cannot play
+              this._displayUserParticipationErrorDialog(function(){
+                this._safeCall(callback, false);
+              }.bind(this));
+            break;
+          }
+        } else {
+          // User failed to authenthicate. Retry.
+          return this._displayUserAuthDialog(false,callback);
+        }
+      }.bind(this));
+    } else {
+      this._safeCall(callback, !settings.forceValidation);
+    }
+  };
+
+  this._onValidateUserFail = function(callback){
+    if(settings.user.authenticated !== true){
+      //User is not authenticated. Retry.
+      return this._retryAfterAuthFail(callback);
+    } else {
+      //User is authenticated but cannot play
+      return this._safeCall(callback, false);
+    }
+  };
+
+  this._retryAfterAuthFail = function(callback){
+    this._resetUserCredentials();
+    return this.validateUser(callback);
+  };
+
+  this._validateUserAfterAuth = function(callback){
+    this._validatePreviousPuzzles(function(success){
+        if((success)||(settings.forceValidation===false)){
+          this._validateStateToRestore(function(erState){
+            this._afterValidateUser();
+            this._safeCall(callback,success,erState);
+          }.bind(this));
+        } else {
+          this._safeCall(callback,false);
+        }
+    }.bind(this));
+  };
+
+  this._validatePreviousPuzzles = function(callback){
+    if((!(settings.requiredPuzzlesIds instanceof Array))||(settings.requiredPuzzlesIds.length === 0)){
+      this._safeCall(callback,true);
+    } else {
+      //Check requirement
+      let stateToVerifyPuzzleRequirements = this._getNewestState();
+      if(this._validateERState(stateToVerifyPuzzleRequirements)===false){
+        settings.puzzlesRequirements = false;
+      } else {
+        for(let i=0; i<settings.requiredPuzzlesIds.length; i++){
+          if(stateToVerifyPuzzleRequirements.puzzlesSolved.indexOf(settings.requiredPuzzlesIds[i])===-1){
+            settings.puzzlesRequirements = false;
+            break;
+          }
+        }
+      }
+      if(settings.puzzlesRequirements===false){
+        if (settings.silent) return this._safeCall(callback,false);
+        this._displayPuzzleRequirementDialog(function(response){
+          this._safeCall(callback,false);
+        }.bind(this));
+      } else {
+        this._safeCall(callback,true);
+      }
+    }
+  };
+
+  this._afterValidateUser = function(){
+    if(initializedAfterValidation === true) return;
+    initializedAfterValidation = true;
+    this._connect();
+    Countdown.startTimer(settings.remainingTime,settings.duration);
+  };
+
+  this._startEscapeRoom = function(callback){
+    this._displayStartDialog(function(start){
+      if(start===true){
+        //User wants to init escape room
+         this.start(function(success){
+          //ER started (unless error on server side)
+          if(success===true){
+            this._displayStartNotification();
+          }
+          this._safeCall(callback,(success===true));
+        }.bind(this));
+      } else {
+        //User do not want to init escape room
+        this._safeCall(callback,false);
+      }
+    }.bind(this));
+  };
+
+
+  //////////////////
+  // Dialogs
+  //////////////////
+
+  this._displayDialog = function(options = {}){
+    options = Utils.deepMerge({escapp:true},options);
+    if ((settings.silent)&&(options.ignoreSilent === false)) return;
+    return Dialogs.displayDialog(options);
+  };
+
+  this.displayCustomDialog = function(title,text,extraOptions,callback){
+    let dialogOptions = {title: title, text: text, escapp: false, icon: undefined};
+    if(typeof callback === "function"){
+      dialogOptions.closeCallback = callback;
+    }
+    if(typeof extraOptions === "object"){
+      dialogOptions = Object.assign(dialogOptions,extraOptions);
+    }
+    this._displayDialog(dialogOptions);
   };
 
   this.displayCustomEscappDialog = function(title,text,extraOptions,callback){
@@ -336,30 +541,220 @@ export default function ESCAPP(_settings){
       setTimeout(function(){
         this.stopAnimation("confetti");
       }.bind(this),1500);
-      if(typeof callback === "function"){
-        callback();
-      }
+      this._safeCall(callback);
     }.bind(this);
     this.startAnimation("confetti");
-    this.displayCustomDialog(I18n.getTrans("i.completion_title"),I18n.getTrans("i.completion_text",{escappURL: this.getEscappPlatformFinishURL()}),dialogOptions,callback);
+    this.displayCustomDialog(I18n.getTrans("i.completion_title"),I18n.getTrans("i.completion_text",{escappURL: this._getEscappPlatformFinishURL()}),dialogOptions,callback);
   };
 
-  this.displayCustomDialog = function(title,text,extraOptions,callback){
-    let dialogOptions = {title: title, text: text, escapp: false, icon: undefined};
+  this._getEscappPlatformFinishURL = function(){
+    return this._getEscappPlatformURL() + "/finish";
+  };
+
+  this._getEscappPlatformURL = function(){
+    return (this._isValidEscappEndpoint(settings.endpoint) ? settings.endpoint.replace("/api","") : "");
+  };
+
+  this._displayUserAuthDialog = function(firstTime,callback){
+    let dialogOptions = {requireInput:true};
+    if(firstTime){
+      dialogOptions.title = I18n.getTrans("i.auth_title");
+      dialogOptions.text = I18n.getTrans("i.auth_text");
+    } else {
+      dialogOptions.title = I18n.getTrans("i.auth_title_wrong_credentials");
+      dialogOptions.text = I18n.getTrans("i.auth_text_wrong_credentials");
+    }
+    dialogOptions.inputs = [
+      {
+        "type":"text",
+        "label":I18n.getTrans("i.auth_email_label"),
+        "validate":function(email){return Utils.validateEmail(email);},
+      }, {
+        "type":"password",
+        "label":I18n.getTrans("i.auth_password_label"),
+      },
+    ];
+    dialogOptions.buttons = [{"response":"ok","label":I18n.getTrans("i.button_ok")}];
+    if(settings.forceValidation===false){
+      dialogOptions.buttons.push({"response":"cancel","label":I18n.getTrans("i.button_nok"),"ignoreInputs":true});
+    }
+    dialogOptions.closeCallback = function(dialogResponse){
+      this._safeCall(callback,dialogResponse);
+    }.bind(this);
+    this._displayDialog(dialogOptions);
+  };
+
+  this._displayUserParticipationErrorDialog = function(callback){
+    let dialogOptions = {};
+    dialogOptions.title = I18n.getTrans("i.generic_error_title");
+
+    if(this.isUserLoggedIn()){
+      switch(settings.user.participation){
+        case "TOO_LATE":
+          dialogOptions.text = I18n.getTrans("i.participation_error_TOO_LATE");
+          break;
+        case "NOT_ACTIVE":
+          dialogOptions.text = I18n.getTrans("i.participation_error_NOT_ACTIVE");
+          break;
+        case "NOT_STARTED":
+          dialogOptions.text = I18n.getTrans("i.participation_error_NOT_STARTED");
+          break;
+        case "AUTHOR":
+        case "NOT_A_PARTICIPANT":
+        default:
+          dialogOptions.text = I18n.getTrans("i.participation_error_NOT_PARTICIPANT");
+          break;
+      }
+    } else {
+      dialogOptions.text = I18n.getTrans("i.participation_error_NOT_AUTHENTICATED");
+    }
     if(typeof callback === "function"){
-      dialogOptions.closeCallback = function(response){
-        callback(response);
+      dialogOptions.closeCallback = callback;
+    }
+
+    dialogOptions.buttons = [];
+    if((settings.forceValidation===false)||(this.isUserLoggedIn()===false)){
+      dialogOptions.buttons.push({"response":"ok","label":I18n.getTrans("i.button_ok")});
+    }
+
+    this._displayDialog(dialogOptions);
+  };
+
+  this._displayPuzzleRequirementDialog = function(callback){
+    let dialogOptions = {};
+    dialogOptions.title = I18n.getTrans("i.generic_error_title");
+    dialogOptions.text = I18n.getTrans("i.puzzles_required");
+    dialogOptions.buttons = [];
+    if(settings.forceValidation===false){
+      dialogOptions.buttons.push({"response":"ok","label":I18n.getTrans("i.button_ok")});
+    }
+    if(typeof callback === "function"){
+      dialogOptions.closeCallback = callback;
+    }
+    this._displayDialog(dialogOptions);
+  };
+
+  this._displayRestoreStateDialog = function(callback){
+    let dialogOptions = {requireInput:true};
+    
+    dialogOptions.title = I18n.getTrans("i.restore_title");
+
+    if(settings.restoreState==="AUTO_NOTIFICATION"){
+      dialogOptions.text = I18n.getTrans("i.restore_auto_text");
+    } else {
+      //REQUEST_USER
+      dialogOptions.text = I18n.getTrans("i.restore_request_text");
+
+      dialogOptions.buttons = [
+        {
+          "response":"ok",
+          "label":I18n.getTrans("i.button_ok"),
+        }, {
+          "response":"nok",
+          "label":I18n.getTrans("i.button_nok"),
+        },
+      ];
+    }
+    
+    if(typeof callback === "function"){
+      dialogOptions.closeCallback = function(dialogResponse){
+        callback(((settings.restoreState==="AUTO_NOTIFICATION")||(dialogResponse.choice==="ok")));
       }.bind(this);
     }
-    if(typeof extraOptions === "object"){
-      dialogOptions = Object.assign(dialogOptions,extraOptions);
-    }
-    this.displayDialog(dialogOptions);
+
+    this._displayDialog(dialogOptions);
   };
 
-  this.displayCustomEscappNotification = function(text,extraOptions){
-    let notificationOptions = Utils.deepMerge((extraOptions || {}),{escapp: true});
-    this.displayCustomNotification(text,notificationOptions);
+  this._displayStartDialog = function(callback){
+    let dialogOptions = {};
+    dialogOptions.title = I18n.getTrans("i.start_title");
+    dialogOptions.text = I18n.getTrans("i.start_text");
+    dialogOptions.buttons = [
+      {
+        "response":"ok",
+        "label":I18n.getTrans("i.button_ok"),
+      }, {
+        "response":"nok",
+        "label":I18n.getTrans("i.button_nok"),
+      },
+    ];
+    
+    if(typeof callback === "function"){
+      dialogOptions.closeCallback = function(dialogResponse){
+        callback(dialogResponse.choice==="ok");
+      }.bind(this);
+    }
+    this._displayDialog(dialogOptions);
+  };
+
+  this._displayInitializationErrorDialog = function(callback){
+    if (isInitializationErrorShown===true) return;
+    isInitializationErrorShown = true;
+
+    let errorMessage;
+    if ((initializationErrors instanceof Array)&&(initializationErrors.length > 0)&&(typeof initializationErrors[0]==="string")&&(initializationErrors[0].trim() !== '')){
+      errorMessage = initializationErrors[0];
+    } else {
+      errorMessage = "Escapp Client could not be started correctly due to an unknown error.";
+    }
+    try {
+      let dialogOptions = {};
+      dialogOptions.icon = undefined;
+      dialogOptions.escapp = false;
+      dialogOptions.ignoreSilent = true;
+      try {
+        dialogOptions.title = I18n.getTrans("i.initialization_error_title");
+        dialogOptions.text = (errorMessage.startsWith("i.") ? I18n.getTrans(errorMessage) : errorMessage);
+      } catch(e){}
+
+      if((typeof dialogOptions.title !== "string")||(dialogOptions.title.trim() === '')){
+        dialogOptions.title = "Escapp client initialization error";
+      }
+      if((typeof dialogOptions.text !== "string")||(dialogOptions.text.trim() === '')){
+        dialogOptions.text = errorMessage;
+      }
+      dialogOptions.closeCallback = function(dialogResponse){
+        isInitializationErrorShown = false;
+        this._safeCall(callback);
+      }.bind(this);
+      this._displayDialog(dialogOptions);
+    } catch (e){
+      alert(errorMessage);
+      isInitializationErrorShown = false;
+      this._safeCall(callback);
+    }
+  };
+
+  this._displayConnectionErrorDialog = function(cancelable,callback){
+    let dialogOptions = {};
+    dialogOptions.title = I18n.getTrans("i.connecton_error_title");
+    dialogOptions.text = I18n.getTrans("i.connecton_error_text"); 
+    dialogOptions.buttons = [
+      {
+        "response":"retry",
+        "label":I18n.getTrans("i.button_retry"),
+      }
+    ];
+    if(cancelable===true){
+      dialogOptions.buttons.push({
+        "response":"nok",
+        "label": I18n.getTrans("i.button_nok"),
+      });
+    }
+    dialogOptions.closeCallback = function(dialogResponse){
+      this._safeCall(callback,dialogResponse.choice);
+    }.bind(this);
+    this._displayDialog(dialogOptions);
+  };
+
+
+  //////////////////
+  // Notifications
+  //////////////////
+
+  this._displayNotification = function(options = {}){
+    options = Utils.deepMerge({escapp:true},options);
+    return Notifications.displayNotification(options);
   };
 
   this.displayCustomNotification = function(text,extraOptions){
@@ -367,51 +762,31 @@ export default function ESCAPP(_settings){
     if(typeof extraOptions === "object"){
       notificationOptions = Object.assign(notificationOptions,extraOptions);
     }
-    this.displayNotification(notificationOptions);
+    this._displayNotification(notificationOptions);
   };
 
-  this.reset = function(callback){
-    this.resetUserCredentials();
-    LocalStorage.clear();
-    if(typeof callback === "function"){
-      callback();
+  this.displayCustomEscappNotification = function(text,extraOptions){
+    let notificationOptions = Utils.deepMerge((extraOptions || {}),{escapp: true});
+    this.displayCustomNotification(text,notificationOptions);
+  };
+
+  this._displayStartNotification = function(){
+    if(typeof settings.teamName === "undefined"){
+      return false;
     }
-  };
-
-  this.encrypt = function(value,algorithm,options={}){
-    return Encrypt.encrypt(value,algorithm,options);
-  };
-
-  this.addUserCredentialsToUrl = function(url){
-    let userCredentials = this.getUserCredentials(settings.user);
-    if(typeof userCredentials === "undefined"){
-      return url;
+    if(this._getNewestState().puzzlesSolved.length !== 0){
+      return false;
     }
-    url = Utils.addParamToUrl(url,"escapp_email",userCredentials.email);
-    url = Utils.addParamToUrl(url,"escapp_token",userCredentials.token);
-    //Password is never shown on URLs.
-    return url;
+
+    let notificationOptions = {};
+    notificationOptions.text = I18n.getTrans("i.notification_start", {team: settings.teamName});
+    this._displayNotification(notificationOptions);
   };
 
-  this.addLocaleParamToUrl = function(url){
-    let urlParams = Utils.getParamsFromCurrentUrl();
-    if(typeof urlParams.locale === "string"){
-      url = Utils.addParamToUrl(url,"locale",urlParams.locale);
-    }
-    return url;
-  };
 
-  this.addEndpointParamToUrl = function(url){
-    let urlParams = Utils.getParamsFromCurrentUrl();
-    if(typeof urlParams.escapp_endpoint === "string"){
-      url = Utils.addParamToUrl(url,"escapp_endpoint",urlParams.escapp_endpoint);
-    }
-    return url;
-  };
-
-  this.addEscappSettingsToUrl = function(url){
-    return this.addEndpointParamToUrl(this.addLocaleParamToUrl(this.addUserCredentialsToUrl(url)));
-  };
+  //////////////////
+  // Animations
+  //////////////////
 
   this.startAnimation = function(animation,time){
     Animations.startAnimation(animation,time);
@@ -423,347 +798,57 @@ export default function ESCAPP(_settings){
 
 
   //////////////////
-  // Escapp API
+  // Escape room state management
   //////////////////
 
-  this.auth = function(user,callback){
-    let userCredentials = this.getUserCredentials(user);
-    if(typeof userCredentials === "undefined"){
-      //Invalid params
-      if(typeof callback === "function"){
-        callback(false);
-      }
-      return;
-    }
-
-    let that = this;
-    let authUserURL = settings.endpoint + "/auth";
-    fetch(authUserURL, {
-        "method": "POST",
-        "body": JSON.stringify(userCredentials),
-        headers: {
-            "Content-type": "application/json",
-            "Accept-Language": "es-ES"
-        }
-    })
-    .then(res => res.json()).then(function(res){
-      delete userCredentials.password;
-      settings.user = userCredentials;
-      if(typeof res.token === "string"){
-        settings.user.token = res.token;
-      }
-      settings.user.authenticated = (res.authentication === true);
-      settings.user.participation = res.participation;
-      LocalStorage.saveSetting("user", settings.user);
-
-      that.updateSettingsFromInitialErState(res.erState);
-      that.updateRemoteErState(res.erState);
-
-      if(typeof callback === "function"){
-        callback(settings.user.authenticated);
-      }
-    }).catch(function(error){
-       that.displayConnectionErrorDialog(false,function(){
-          that.auth(user,callback);
-       });
-    });
-  };
-
-  this.retrieveState = function(callback){
-    this.auth(settings.user,function(success){
-      if((success)&&(settings.user.authenticated)){
-        //User is authenticated.
-        if(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) !== -1){
-          //User is a valid participant.
-          if (settings.user.participation === "NOT_STARTED"){
-            //User is authenticated and a participant, but the escape room needs to be started.
-            //Ask the participant if he/she wants to start the escape room.
-            this.startEscapeRoom(function(started){
-              if(started === true){
-                return this.validateUserAfterAuth(callback);
-              } else {
-                return this.validateUser(callback);
-              }
-            }.bind(this));
-          } else {
-            return this.validateUserAfterAuth(callback);
-          }
-        } else {
-          this.displayUserParticipationErrorDialog(function(){
-            if(typeof callback === "function"){
-              callback(false, undefined);
-            }
-          });
-        }
-      } else {
-        if(typeof callback === "function"){
-          callback(false,undefined);
-        }
-      }
-    }.bind(this));
-  };
-
-  this.submitPuzzle = function(puzzleId,solution,options={},callback){
-    let userCredentials = this.getUserCredentials(settings.user);
-    if(typeof userCredentials === "undefined"){
-      if(typeof callback === "function"){
-        callback(false,{msg: "Invalid params"});
-      }
-      return;
-    }
-    if(typeof puzzleId === "undefined"){
-      if(typeof callback === "function"){
-        callback(false,{msg: "Puzzle id not provided"});
-      }
-      return;
-    }
-    if(settings.puzzlesRequirements !== true){
-      if(typeof callback === "function"){
-        callback(false,{msg: "Invalid puzzle requirements"});
-      }
-      return;
-    }
-
-    let that = this;
-    let submitPuzzleURL = settings.endpoint + "/puzzles/" + puzzleId + ((options.readonly === true) ? "/check_solution" : "/submit");
-    let body = userCredentials;
-    body.solution = solution;
-    
-    fetch(submitPuzzleURL, {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        "Content-type": "application/json",
-        "Accept-Language": "es-ES"
-      }
-    }).then(res => res.json()).then(function(res){
-        let success = false;
-        if(options.readonly !== true){
-          success = (res.code === "OK");
-          if(success){
-            //Puzzle solved
-            if(that.validateERState(settings.localErState)){
-              if(settings.localErState.puzzlesSolved.indexOf(puzzleId)===-1){
-                settings.localErState.puzzlesSolved.push(puzzleId);
-                LocalStorage.saveSetting("localErState",settings.localErState);
-              }
-            }
-          }
-          that.updateRemoteErState(res.erState);
-        } else {
-          success = ((res.code === "OK")&&(res.correctAnswer === true));
-        }
-        if(typeof callback === "function"){
-          callback(success,res);
-        }
-      }
-    ).catch(function(error){
-       that.displayConnectionErrorDialog(true,function(dialogResponse){
-        if(dialogResponse === "retry"){
-          that.submitPuzzle(puzzleId,solution,options,callback);
-        }
-       });
-    });
-  };
-
-  this.checkPuzzle = function(puzzleId,solution,options={},callback){
-    options.readonly = true;
-    this.submitPuzzle(puzzleId,solution,options,callback);
-  };
-
-  this.submitNextPuzzle = function(solution,options={},callback){
-    this.submitPuzzle(this.getNextPuzzle(),solution,options,callback);
-  };
-
-  this.checkNextPuzzle = function(solution,options={},callback){
-    options.readonly = true;
-    this.checkPuzzle(this.getNextPuzzle(),solution,options,callback);
-  };
-
-  this.getNextPuzzle = function(){
-    return settings.nextPuzzleId;
-  };
-
-  this.getAllPuzzlesSolved = function(){
-    return settings.allPuzzlesSolved;
-  };
-
-  this.start = function(callback){
-    let userCredentials = this.getUserCredentials(settings.user);
-    if(typeof userCredentials === "undefined"){
-      if(typeof callback === "function"){
-        callback(false);
-      }
-      return;
-    }
-
-    let that = this;
-    let startURL = settings.endpoint + "/start";
-    let body = userCredentials;
-
-    fetch(startURL, {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        "Content-type": "application/json",
-        "Accept-Language": "es-ES"
-      }
-    }).then(res => res.json()).then(function(res){
-        that.updateRemoteErState(res.erState);
-        let startSuccess = (res.code === "OK");
-        if(startSuccess){
-          that.updateSettingsFromInitialErState(res.erState);
-          settings.user.participation = res.participation;
-          LocalStorage.saveSetting("user", settings.user);
-        }
-        if(typeof callback === "function"){
-          callback(startSuccess,res);
-        }
-      }
-    ).catch(function(error){
-       that.displayConnectionErrorDialog(true,function(dialogResponse){
-        if(dialogResponse === "nok"){
-          if(typeof callback === "function"){
-            callback(false);
-          }
-        } else if(dialogResponse === "retry"){
-          that.start(callback);
-        }
-       });
-    }); 
-  };
-
-
-  //////////////////
-  // Utils
-  //////////////////
-
-  this.getUserCredentials = function(user){
-    if((typeof user !== "object")||(typeof user.email !== "string")||((typeof user.token !== "string")&&(typeof user.password !== "string"))){
-      return undefined;
-    }
-    let userCredentials = {email: user.email};
-    if(typeof user.token === "string"){
-      userCredentials.token = user.token;
-    } else {
-      userCredentials.password = user.password;
-    }
-    return userCredentials;
-  };
-
-  this.resetUserCredentials = function(){
-    settings.user = Object.assign({}, defaultReadOnlySettings.user);
-    settings.localErState = defaultERState;
-    settings.remoteErState = undefined;
-    LocalStorage.removeSetting("localErState");
-    LocalStorage.removeSetting("user");
-  };
-
-  this.validateUserAfterAuth = function(callback){
-    this.validatePreviousPuzzles(function(success){
-        if((success)||(settings.forceValidation===false)){
-          this.validateStateToRestore(function(erState){
-            this.afterValidateUser();
-            if(typeof callback === "function"){
-              callback(success,erState);
-            }
-          }.bind(this));
-        } else {
-          if(typeof callback === "function"){
-            callback(false,undefined);
-          }
-        }
-    }.bind(this));
-  };
-
-  this.afterValidateUser = function(){
-    this.connect();
-    Countdown.startTimer(settings.remainingTime,settings.duration);
-  };
-
-  this.validatePreviousPuzzles = function(callback){
-    if((!(settings.requiredPuzzlesIds instanceof Array))||(settings.requiredPuzzlesIds.length === 0)){
-      if(typeof callback === "function"){
-        callback(true);
-      }
-    } else {
-      //Check requirement
-      let stateToVerifyPuzzleRequirements = this.getNewestState();
-      if(this.validateERState(stateToVerifyPuzzleRequirements)===false){
-        settings.puzzlesRequirements = false;
-      } else {
-        for(let i=0; i<settings.requiredPuzzlesIds.length; i++){
-          if(stateToVerifyPuzzleRequirements.puzzlesSolved.indexOf(settings.requiredPuzzlesIds[i])===-1){
-            settings.puzzlesRequirements = false;
-            break;
-          }
-        }
-      }
-      if(settings.puzzlesRequirements===false){
-        this.displayPuzzleRequirementDialog(function(response){
-          if(typeof callback === "function"){
-            callback(false,undefined);
-          }
-        });
-      } else {
-        if(typeof callback === "function"){
-          callback(true);
-        }
-      }
-    }
-  };
-
-  this.validateStateToRestore = function(callback){
+  this._validateStateToRestore = function(callback){
     if(settings.restoreState==="NEVER"){
-      if(typeof callback === "function"){
-        callback(undefined);
-      }
-      return;
+      return this._safeCall(callback);
     }
 
-    let remoteStateIsNewest = this.isRemoteStateNewest();
-    let erStateToRestore = this.getNewestState();
+    let remoteStateIsNewest = this._isRemoteStateNewest();
+    let erStateToRestore = this._getNewestState();
 
     if((settings.restoreState==="AUTO")||(remoteStateIsNewest===false)){
-      return this.updateErStates(erStateToRestore,callback);
+      return this._updateErStates(erStateToRestore,callback);
     }
 
     if((settings.relatedPuzzleIds instanceof Array)&&(settings.relatedPuzzleIds.length > 0)){
-      if(this.isRemoteStateNewestForApp()===false){
+      if(this._isRemoteStateNewestForApp()===false){
         //State is new but not for this app. Prevent dialog, but update.
-        return this.updateErStates(erStateToRestore,callback);
+        return this._updateErStates(erStateToRestore,callback);
       }
     }
 
     //Ask or notify before returning remoteErState
-    this.displayRestoreStateDialog(function(success){
+    this._displayRestoreStateDialog(function(success){
       if(success===false){
         erStateToRestore = settings.localErState;
       }
-      return this.updateErStates(erStateToRestore,callback);
+      return this._updateErStates(erStateToRestore,callback);
     }.bind(this));
   };
 
-  this.updateErStates = function(erStateToRestore,callback){
-    if(this.validateERState(erStateToRestore)){
+  this._updateErStates = function(erStateToRestore,callback){
+    if(this._validateERState(erStateToRestore)){
       settings.localErState = erStateToRestore;
       LocalStorage.saveSetting("localErState",settings.localErState);
       settings.remoteErState = undefined;
+
+      //Update states
+      this._updateAppPuzzlesState();
+      this._updateTrackingLocalErState();
     }
-    if(typeof callback === "function"){
-      callback(erStateToRestore);
-    }
+    this._safeCall(callback,erStateToRestore);
   };
 
-  this.updateRemoteErState = function(remoteErState){
-    if(this.validateERState(remoteErState) === false){
-      return;
-    }
+  this._updateRemoteErState = function(remoteErState){
+    if(this._validateERState(remoteErState) === false) return;
     settings.remoteErState = remoteErState;
 
     //Check restart
     let er_restarted = false;
-    if(this.validateERState(settings.localErState)&&(typeof settings.localErState.startTime !== "undefined")){
+    if(this._validateERState(settings.localErState)&&(typeof settings.localErState.startTime !== "undefined")){
       if(settings.localErState.startTime !== remoteErState.startTime){
         //The user has restarted the escape room
         settings.localErState = settings.remoteErState;
@@ -791,12 +876,12 @@ export default function ESCAPP(_settings){
     }
 
     //Update nextPuzzleId and allPuzzlesSolved
-    this.updateAppPuzzlesState();
+    this._updateAppPuzzlesState();
 
     //Progress and score
-    this.updateTrackingLocalErState();
+    this._updateTrackingLocalErState();
 
-    if(this.validateERState(settings.localErState)){
+    if(this._validateERState(settings.localErState)){
       LocalStorage.saveSetting("localErState",settings.localErState);
     }
 
@@ -807,7 +892,7 @@ export default function ESCAPP(_settings){
     }
   };
 
-  this.updateTrackingLocalErState = function(){
+  this._updateTrackingLocalErState = function(){
     //Progress
     settings.localErState.progress = 100.0 * settings.localErState.puzzlesSolved.length/settings.localErState.nPuzzles;
 
@@ -820,11 +905,11 @@ export default function ESCAPP(_settings){
     settings.localErState.score = newScore;
   };
 
-  this.updateSettingsFromInitialErState = function(erState){
-    if(this.validateERState(erState) === false){
+  this._updateSettingsFromInitialErState = function(erState){
+    if(this._validateERState(erState) === false){
       return;
     }
-    let teamName = this.getTeamNameFromERState(erState);
+    let teamName = this._getTeamNameFromERState(erState);
     if(typeof teamName === "string"){
       settings.teamName = teamName;
     }
@@ -836,7 +921,7 @@ export default function ESCAPP(_settings){
     }
   };
 
-  this.updateAppPuzzlesState = function(){
+  this._updateAppPuzzlesState = function(){
      let _nextPuzzleId;
      let _allPuzzlesSolved = false;
 
@@ -855,13 +940,13 @@ export default function ESCAPP(_settings){
     settings.allPuzzlesSolved = _allPuzzlesSolved;
   };
 
-  this.getNewestState = function(){
-    return (this.isRemoteStateNewest() ? settings.remoteErState : settings.localErState);
+  this._getNewestState = function(){
+    return (this._isRemoteStateNewest() ? settings.remoteErState : settings.localErState);
   };
 
-  this.isRemoteStateNewest = function(appScope){
-    let localErStateValid = this.validateERState(settings.localErState);
-    let remoteErStateValid = this.validateERState(settings.remoteErState);
+  this._isRemoteStateNewest = function(appScope){
+    let localErStateValid = this._validateERState(settings.localErState);
+    let remoteErStateValid = this._validateERState(settings.remoteErState);
 
     if(remoteErStateValid===false){
       return false;
@@ -877,14 +962,14 @@ export default function ESCAPP(_settings){
         _localErState.puzzlesSolved = _localErState.puzzlesSolved.filter(puzzle_id => settings.relatedPuzzleIds.indexOf(puzzle_id)!==-1);
         let _remoteErState = Utils.deepMerge({},settings.remoteErState);
         _remoteErState.puzzlesSolved = _remoteErState.puzzlesSolved.filter(puzzle_id => settings.relatedPuzzleIds.indexOf(puzzle_id)!==-1);
-        return this.isStateNewestThan(_remoteErState,_localErState);
+        return this._isStateNewestThan(_remoteErState,_localErState);
       }
     }
 
-    return this.isStateNewestThan(settings.remoteErState,settings.localErState);
+    return this._isStateNewestThan(settings.remoteErState,settings.localErState);
   };
 
-  this.isStateNewestThan = function(erStateA,erStateB){
+  this._isStateNewestThan = function(erStateA,erStateB){
     if(erStateA.puzzlesSolved.length === 0){
       return false;
     }
@@ -895,50 +980,225 @@ export default function ESCAPP(_settings){
     return (erStateA.puzzlesSolved.length > erStateB.puzzlesSolved.length);
   };
 
-  this.isRemoteStateNewestForApp = function(){
-    return this.isRemoteStateNewest(true);
+  this._isRemoteStateNewestForApp = function(){
+    return this._isRemoteStateNewest(true);
   };
 
-  this.validateERState = function(erState){
+  this._validateERState = function(erState){
     return ((typeof erState === "object")&&(erState.puzzlesSolved instanceof Array));
   };
 
-  this.getEscappPlatformURL = function(){
-    return settings.endpoint.replace("/api","");
-  };
 
-  this.getEscappPlatformFinishURL = function(){
-    return settings.endpoint.replace("/api","") + "/finish";
-  };
+  //////////////////
+  // Interaction with Escapp API
+  //////////////////
 
-  this.isValidEscappEndpoint = function(url) {
-    const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/[0-9]+)$/;
-    return regex.test(url);
-  };
-
-  this.getERIdFromEscappEndpoint = function(url) {
-    const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/([0-9]+))$/;
-    const match = url.match(regex);
-    return match ? (parseInt(match[2], 10) + "") : undefined;
-  };
-
-  this.connect = function(){
-    if(settings.rtc !== true){
-      return;
+  this._auth = function(user,callback){
+    let userCredentials = this._getUserCredentials(user);
+    if(typeof userCredentials === "undefined"){
+      //Invalid params
+      return this._safeCall(callback,false);
     }
-    let userCredentials = this.getUserCredentials(settings.user);
+
+    let that = this;
+    let authUserURL = settings.endpoint + "/auth";
+    fetch(authUserURL, {
+        "method": "POST",
+        "body": JSON.stringify(userCredentials),
+        headers: {
+            "Content-type": "application/json",
+            "Accept-Language": "es-ES"
+        }
+    })
+    .then(res => res.json()).then(function(res){
+      delete userCredentials.password;
+      settings.user = userCredentials;
+      if(typeof res.token === "string"){
+        settings.user.token = res.token;
+      }
+      settings.user.authenticated = (res.authentication === true);
+      settings.user.participation = res.participation;
+      LocalStorage.saveSetting("user", settings.user);
+
+      that._updateSettingsFromInitialErState(res.erState);
+      that._updateRemoteErState(res.erState);
+
+      that._safeCall(callback,settings.user.authenticated);
+    }).catch(function(error){
+       that._displayConnectionErrorDialog(false,function(){
+          that._auth(user,callback);
+       });
+    });
+  };
+
+  this.retrieveState = function(callback){
+    this._auth(settings.user,function(success){
+      if((success)&&(settings.user.authenticated)){
+        //User is authenticated.
+        if(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) !== -1){
+          //User is a valid participant.
+          if (settings.user.participation === "NOT_STARTED"){
+            //User is authenticated and a participant, but the escape room needs to be started.
+            if (settings.silent) return this._safeCall(callback,false);
+            //Ask the participant if he/she wants to start the escape room.
+            this._startEscapeRoom(function(started){
+              if(started === true){
+                return this._validateUserAfterAuth(callback);
+              } else {
+                return this.validateUser(callback);
+              }
+            }.bind(this));
+          } else {
+            return this._validateUserAfterAuth(callback);
+          }
+        } else {
+          if (settings.silent) return this._safeCall(callback,false);
+          this._displayUserParticipationErrorDialog(function(){
+            this._safeCall(callback,false);
+          }.bind(this));
+        }
+      } else {
+        this._safeCall(callback,false);
+      }
+    }.bind(this));
+  };
+
+  this.submitPuzzle = function(puzzleId,solution,options={},callback){
+    if((this.isUserValidParticipant()===false)&&(settings.silent===false)) return this._displayUserParticipationErrorDialog(callback);
+
+    let userCredentials = this._getUserCredentials(settings.user);
+    if(typeof userCredentials === "undefined"){
+      return this._safeCall(callback,false,{msg: "Invalid params"});
+    }
+    if(typeof puzzleId === "undefined"){
+      return this._safeCall(callback,false,{msg: "Puzzle id not provided"});
+    }
+    if(settings.puzzlesRequirements !== true){
+      return this._safeCall(callback,false,{msg: "Invalid puzzle requirements"});
+    }
+
+    let that = this;
+    let submitPuzzleURL = settings.endpoint + "/puzzles/" + puzzleId + ((options.readonly === true) ? "/check_solution" : "/submit");
+    let body = userCredentials;
+    body.solution = solution;
+    
+    fetch(submitPuzzleURL, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: {
+        "Content-type": "application/json",
+        "Accept-Language": "es-ES"
+      }
+    }).then(res => res.json()).then(function(res){
+        if(res.participation !== "PARTICIPANT"){
+          if(settings.silent===false) {
+            return that._displayUserParticipationErrorDialog(function(){
+              this._safeCall(callback,false,res);
+            }.bind(that));
+          } else {
+            that._safeCall(callback,false,res);
+          }
+        }
+
+        let success = ((res.code === "OK")&&(res.correctAnswer === true));
+        if(options.readonly !== true){
+          if(success){
+            //Puzzle solved
+            if(that._validateERState(settings.localErState)){
+              if(settings.localErState.puzzlesSolved.indexOf(puzzleId)===-1){
+                settings.localErState.puzzlesSolved.push(puzzleId);
+                LocalStorage.saveSetting("localErState",settings.localErState);
+              }
+            }
+          }
+          that._updateRemoteErState(res.erState);
+        }
+        that._safeCall(callback,success,res);
+      }
+    ).catch(function(error){
+      if(settings.silent===true) return that._safeCall(callback,false);
+      that._displayConnectionErrorDialog(true,function(dialogResponse){
+        if(dialogResponse === "retry"){
+          that.submitPuzzle(puzzleId,solution,options,callback);
+        }
+      });
+    });
+  };
+
+  this.checkPuzzle = function(puzzleId,solution,options={},callback){
+    options.readonly = true;
+    this.submitPuzzle(puzzleId,solution,options,callback);
+  };
+
+  this.submitNextPuzzle = function(solution,options={},callback){
+    this.submitPuzzle(this.getNextPuzzle(),solution,options,callback);
+  };
+
+  this.checkNextPuzzle = function(solution,options={},callback){
+    options.readonly = true;
+    this.checkPuzzle(this.getNextPuzzle(),solution,options,callback);
+  };
+
+  this.start = function(callback){
+    let userCredentials = this._getUserCredentials(settings.user);
+    if((typeof userCredentials === "undefined")||(this.isUserLoggedIn()===false)){
+      return this._safeCall(callback,false);
+    }
+
+    let that = this;
+    let startURL = settings.endpoint + "/start";
+    let body = userCredentials;
+
+    fetch(startURL, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: {
+        "Content-type": "application/json",
+        "Accept-Language": "es-ES"
+      }
+    }).then(res => res.json()).then(function(res){
+        that._updateRemoteErState(res.erState);
+        let startSuccess = (res.code === "OK");
+        if(startSuccess){
+          that._updateSettingsFromInitialErState(res.erState);
+          settings.user.participation = res.participation;
+          LocalStorage.saveSetting("user", settings.user);
+        }
+        that._safeCall(callback,startSuccess,res);
+      }
+    ).catch(function(error){
+      if(settings.silent===true) return that._safeCall(callback,false);
+      that._displayConnectionErrorDialog(true,function(dialogResponse){
+        if(dialogResponse === "retry"){
+          that.start(callback);
+        } else {
+          //dialogResponse === "nok")
+          that._safeCall(callback,false);
+        }
+      }.bind(that));
+    }); 
+  };
+
+
+  ///////////////////////
+  // RTC (Real Time Communication)
+  ///////////////////////
+
+  this._connect = function(){
+    if(settings.rtc !== true) return;
+    let userCredentials = this._getUserCredentials(settings.user);
     if(typeof userCredentials !== "undefined"){
       Events.connect(userCredentials,settings);
     }
   };
 
-  this.getTeamNameFromERState = function(erState){
-    let team = this.getTeamFromERState(erState);
+  this._getTeamNameFromERState = function(erState){
+    let team = this._getTeamFromERState(erState);
     return (typeof team === "object") ? team.name : undefined;
   };
 
-  this.getMemberNameFromERState = function(erState,memberEmail){
-    let team = this.getTeamFromERState(erState);
+  this._getMemberNameFromERState = function(erState,memberEmail){
+    let team = this._getTeamFromERState(erState);
     if((typeof team === "undefined")||(!(team.teamMembers instanceof Array))){
       return undefined;
     }
@@ -950,11 +1210,11 @@ export default function ESCAPP(_settings){
     return undefined;
   };
 
-  this.getTeamFromERState = function(erState){
-    return this.getTeamFromRanking(erState.teamId,erState.ranking);
+  this._getTeamFromERState = function(erState){
+    return this._getTeamFromRanking(erState.teamId,erState.ranking);
   };
 
-  this.getTeamFromRanking = function(teamId,ranking){
+  this._getTeamFromRanking = function(teamId,ranking){
     if((typeof teamId === "number")&&(ranking instanceof Array)){
       for(let i=0; i<ranking.length; i++){
         if(ranking[i].id === teamId){
@@ -967,8 +1227,12 @@ export default function ESCAPP(_settings){
 
 
   //////////////////
-  // Utils for apps and subcomponents
+  // Utils
   //////////////////
+
+  this._hasBeenSuccesfullyInitialized = function(){
+    return succesfullyInitialized;
+  };
 
   this.getSettings = function(){
     return settings;
@@ -993,260 +1257,97 @@ export default function ESCAPP(_settings){
     return jQuery;
   };
 
-  this.isEREnded = function(){
-    return ((this.isERCompleted())||(Countdown.getTimeRunout()));
+  this.isUserLoggedIn = function(){
+    return (settings.user.authenticated === true);
+  };
+
+  this.isUserValidParticipant = function(){
+    return ((settings.user.authenticated === true)&&(settings.user.participation==="PARTICIPANT"));
+  };
+
+  this.getNextPuzzle = function(){
+    return settings.nextPuzzleId;
+  };
+
+  this.getAllPuzzlesSolved = function(){
+    return settings.allPuzzlesSolved;
+  };
+
+  this._onTimeRunOut = function(){
+    if((this._validateERState(settings.localErState)) && (settings.localErState.strictTime === true)){
+      settings.user.participation = "TOO_LATE";
+
+      if((settings.silent !== true)&&(Countdown.getNotificationsEnabled() === false)){
+        //Notify when time runs out through dialogs when time notifications are not enabled
+        this.displayCustomEscappDialog(I18n.getTrans("i.notification_time_runout_title"),I18n.getTrans("i.notification_time_runout"),{});
+      }
+    }
   };
 
   this.isERCompleted = function(){
-    let erState = this.getNewestState();
-    if((this.validateERState(erState))&&(erState.puzzlesSolved instanceof Array)&&(typeof erState.nPuzzles === "number")){
+    let erState = this._getNewestState();
+    if((this._validateERState(erState))&&(erState.puzzlesSolved instanceof Array)&&(typeof erState.nPuzzles === "number")){
       return (erState.puzzlesSolved.length === erState.nPuzzles);
     }
     return false;
   };
 
+  this.isEREnded = function(){
+    return ((this.isERCompleted())||(Countdown.getTimeRunout()));
+  };
+
+  this.reset = function(callback){
+    this._resetUserCredentials();
+    LocalStorage.clear();
+    this._safeCall(callback);
+  };
+
+  this.encrypt = function(value,algorithm,options={}){
+    return Encrypt.encrypt(value,algorithm,options);
+  };
+
+  this.addEscappSettingsToUrl = function(url){
+    return this._addEndpointParamToUrl(this._addLocaleParamToUrl(this._addUserCredentialsToUrl(url)));
+  };
+
+  this._addUserCredentialsToUrl = function(url){
+    let userCredentials = this._getUserCredentials(settings.user);
+    if(typeof userCredentials === "undefined"){
+      return url;
+    }
+    url = Utils.addParamToUrl(url,"escapp_email",userCredentials.email);
+    url = Utils.addParamToUrl(url,"escapp_token",userCredentials.token);
+    //Password is never shown on URLs.
+    return url;
+  };
+
+  this._addLocaleParamToUrl = function(url){
+    let urlParams = Utils.getParamsFromCurrentUrl();
+    if(typeof urlParams.locale === "string"){
+      url = Utils.addParamToUrl(url,"locale",urlParams.locale);
+    }
+    return url;
+  };
+
+  this._addEndpointParamToUrl = function(url){
+    let urlParams = Utils.getParamsFromCurrentUrl();
+    if(typeof urlParams.escapp_endpoint === "string"){
+      url = Utils.addParamToUrl(url,"escapp_endpoint",urlParams.escapp_endpoint);
+    }
+    return url;
+  };
+
+  this._safeCall = function(callback, ...args) {
+    if (typeof callback === "function") {
+      callback(...args);
+    }
+  };
+
 
   //////////////////
-  // UI
+  // Init Escapp client
   //////////////////
 
-  this.displayUserAuthDialog = function(firstTime,callback){
-    let dialogOptions = {requireInput:true};
-    if(firstTime){
-      dialogOptions.title = I18n.getTrans("i.auth_title");
-      dialogOptions.text = I18n.getTrans("i.auth_text");
-    } else {
-      dialogOptions.title = I18n.getTrans("i.auth_title_wrong_credentials");
-      dialogOptions.text = I18n.getTrans("i.auth_text_wrong_credentials");
-    }
-    dialogOptions.inputs = [
-      {
-        "type":"text",
-        "label":I18n.getTrans("i.auth_email_label"),
-        "validate":function(email){return Utils.validateEmail(email);},
-      }, {
-        "type":"password",
-        "label":I18n.getTrans("i.auth_password_label"),
-      },
-    ];
-    dialogOptions.buttons = [{"response":"ok","label":I18n.getTrans("i.button_ok")}];
-    if(settings.forceValidation===false){
-      dialogOptions.buttons.push({"response":"cancel","label":I18n.getTrans("i.button_nok"),"ignoreInputs":true});
-    }
-    dialogOptions.closeCallback = function(dialogResponse){
-      if((settings.forceValidation!==false)||(dialogResponse.choice==="ok")){
-        let user = {email:dialogResponse.inputs[0], password:dialogResponse.inputs[1]};
-        this.auth(user,function(success){
-          if(settings.user.authenticated === true){
-            // User authentication succesfull
-            if(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) === -1){
-              //User is authenticated but not a participant
-              this.displayUserParticipationErrorDialog(function(){
-                if(typeof callback === "function"){
-                  callback(false);
-                }
-              });
-            } else {
-              if(settings.user.participation === "NOT_STARTED"){
-                //User is authenticated and a participant, but the escape room needs to be started.
-                //Ask the participant if he/she wants to start the escape room.
-                this.startEscapeRoom(function(started){
-                  if(typeof callback === "function"){
-                    callback(started);
-                  }
-                }.bind(this));
-              } else {
-                //settings.user.participation === "PARTICIPANT"
-                //User is authenticated, user is a participant, and user has started the escape room.
-                if(typeof callback === "function"){
-                  callback(true);
-                }
-              }
-            }
-          } else {
-            return this.displayUserAuthDialog(false,callback);
-          }
-        }.bind(this));
-      } else {
-        if(typeof callback === "function"){
-          callback(false);
-        }
-      }
-    }.bind(this);
-
-    this.displayDialog(dialogOptions);
-  };
-
-  this.startEscapeRoom = function(callback){
-    this.displayStartDialog(function(start){
-      if(start===true){
-        //User wants to init escape room
-         this.start(function(success){
-          //ER started (unless error on server side)
-          if(success===true){
-            this.displayStartNotification();
-          }
-          if(typeof callback === "function"){
-            callback((success===true));
-          }
-        }.bind(this));
-      } else {
-        //User do not want to init escape room
-        if(typeof callback === "function"){
-          callback(false);
-        }
-      }
-    }.bind(this));
-  };
-
-  this.displayUserParticipationErrorDialog = function(callback){
-    let dialogOptions = {};
-    dialogOptions.title = I18n.getTrans("i.generic_error_title");
-
-    switch(settings.user.participation){
-      case "TOO_LATE":
-        dialogOptions.text = I18n.getTrans("i.participation_error_TOO_LATE");
-        break;
-      case "NOT_ACTIVE":
-        dialogOptions.text = I18n.getTrans("i.participation_error_NOT_ACTIVE");
-        break;
-      case "NOT_STARTED":
-        dialogOptions.text = I18n.getTrans("i.participation_error_NOT_STARTED");
-        break;
-      case "AUTHOR":
-      case "NOT_A_PARTICIPANT":
-      default:
-        dialogOptions.text = I18n.getTrans("i.participation_error_NOT_A_PARTICIPANT");
-        break;
-    }
-    if(typeof callback === "function"){
-      dialogOptions.closeCallback = function(response){
-        callback(response);
-      }.bind(this);
-    }
-    this.displayDialog(dialogOptions);
-  };
-
-  this.displayPuzzleRequirementDialog = function(callback){
-    let dialogOptions = {};
-    dialogOptions.title = I18n.getTrans("i.generic_error_title");
-    dialogOptions.text = I18n.getTrans("i.puzzles_required");
-    dialogOptions.buttons = [];
-    if(settings.forceValidation===false){
-      dialogOptions.buttons.push({"response":"ok","label":I18n.getTrans("i.button_ok")});
-    }
-    if(typeof callback === "function"){
-      dialogOptions.closeCallback = function(dialogResponse){
-        callback(dialogResponse);
-      }.bind(this);
-    }
-    this.displayDialog(dialogOptions);
-  };
-
-  this.displayRestoreStateDialog = function(callback){
-    let dialogOptions = {requireInput:true};
-    
-    dialogOptions.title = I18n.getTrans("i.restore_title");
-
-    if(settings.restoreState==="AUTO_NOTIFICATION"){
-      dialogOptions.text = I18n.getTrans("i.restore_auto_text");
-    } else {
-      //REQUEST_USER
-      dialogOptions.text = I18n.getTrans("i.restore_request_text");
-
-      dialogOptions.buttons = [
-        {
-          "response":"ok",
-          "label":I18n.getTrans("i.button_ok"),
-        }, {
-          "response":"nok",
-          "label":I18n.getTrans("i.button_nok"),
-        },
-      ];
-    }
-    
-    if(typeof callback === "function"){
-      dialogOptions.closeCallback = function(dialogResponse){
-        let response = ((settings.restoreState==="AUTO_NOTIFICATION")||(dialogResponse.choice==="ok"));
-        callback(response);
-      }.bind(this);
-    }
-
-    this.displayDialog(dialogOptions);
-  };
-
-  this.displayStartDialog = function(callback){
-    let dialogOptions = {};
-    dialogOptions.title = I18n.getTrans("i.start_title");
-    dialogOptions.text = I18n.getTrans("i.start_text");
-    dialogOptions.buttons = [
-      {
-        "response":"ok",
-        "label":I18n.getTrans("i.button_ok"),
-      }, {
-        "response":"nok",
-        "label":I18n.getTrans("i.button_nok"),
-      },
-    ];
-    
-    if(typeof callback === "function"){
-      dialogOptions.closeCallback = function(dialogResponse){
-        let response = (dialogResponse.choice==="ok");
-        callback(response);
-      }.bind(this);
-    }
-    this.displayDialog(dialogOptions);
-  };
-
-  this.displayConnectionErrorDialog = function(cancelable,callback){
-    let dialogOptions = {};
-    dialogOptions.title = I18n.getTrans("i.connecton_error_title");
-    dialogOptions.text = I18n.getTrans("i.connecton_error_text"); 
-    dialogOptions.buttons = [
-      {
-        "response":"retry",
-        "label":I18n.getTrans("i.button_retry"),
-      }
-    ];
-    if(cancelable===true){
-      dialogOptions.buttons.push({
-        "response":"nok",
-        "label": I18n.getTrans("i.button_nok"),
-      });
-    }
-    dialogOptions.closeCallback = function(dialogResponse){
-      if(typeof callback === "function"){
-        callback(dialogResponse.choice);
-      }
-    };
-    this.displayDialog(dialogOptions);
-  };
-
-  this.displayDialog = function(options = {}){
-    options = Utils.deepMerge({escapp:true},options);
-    return Dialogs.displayDialog(options);
-  };
-
-  this.displayStartNotification = function(){
-    if(typeof settings.teamName === "undefined"){
-      return false;
-    }
-    if(this.getNewestState().puzzlesSolved.length !== 0){
-      return false;
-    }
-
-    let notificationOptions = {};
-    notificationOptions.text = I18n.getTrans("i.notification_start", {team: settings.teamName});
-    this.displayNotification(notificationOptions);
-  };
-
-  this.displayNotification = function(options = {}){
-    options = Utils.deepMerge({escapp:true},options);
-    return Notifications.displayNotification(options);
-  };
-
-
-  //Initialization
   this.init(_settings);
 
   //Validate after init if autovalidation is enabled

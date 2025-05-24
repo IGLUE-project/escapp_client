@@ -149,7 +149,7 @@ function onMemberJoin(data){
   if(settings.localErState.teamMembers.indexOf(memberEmail) !== -1){
     if(previousConnectedTeamMembers.indexOf(memberEmail) === -1){
       if(typeof state.reconnectionTeamMembers[memberEmail] === "undefined"){
-        let memberName = ESCAPP.getMemberNameFromERState(settings.localErState,memberEmail);
+        let memberName = ESCAPP._getMemberNameFromERState(settings.localErState,memberEmail);
         if(typeof memberName === "string"){
           displayOnMemberJoinNotification(memberName);
         }
@@ -194,7 +194,7 @@ function onMemberLeave(data){
           }
           if(state.connectedTeamMembers.indexOf(memberEmail) === -1){
             if(typeof state.reconnectionTeamMembers[memberEmail] === "undefined"){
-              let memberName = ESCAPP.getMemberNameFromERState(settings.localErState,memberEmail);
+              let memberName = ESCAPP._getMemberNameFromERState(settings.localErState,memberEmail);
               if(typeof memberName === "string"){
                 displayOnMemberLeaveNotification(memberName);
               }
@@ -217,8 +217,8 @@ function onNewHint(res){
 
 function onPuzzleResponse(res){
   if((res.code === "OK")&&(typeof res.puzzleOrder === "number")){
-    let puzzlesSolved = Object.assign([],ESCAPP.getNewestState().puzzlesSolved);
-    ESCAPP.updateRemoteErState(res.erState);
+    let puzzlesSolved = Object.assign([],ESCAPP._getNewestState().puzzlesSolved);
+    ESCAPP._updateRemoteErState(res.erState);
 
     if(puzzlesSolved.indexOf(res.puzzleOrder)===-1){
       displayOnPuzzleSuccessNotification(res.puzzleOrder);
@@ -258,10 +258,10 @@ function onNewMessage(data){
 
 function onNewErState(erState){
   let localErStateBeforeEvent = Object.assign({},ESCAPP.getSettings().localErState);
-  let isRemoteStateNewestForApp = ESCAPP.isRemoteStateNewestForApp();
-  ESCAPP.validateStateToRestore(function(erState){
+  let isRemoteStateNewestForApp = ESCAPP._isRemoteStateNewestForApp();
+  ESCAPP._validateStateToRestore(function(erState){
     if(typeof erState === "object"){
-      if((isRemoteStateNewestForApp)&&(ESCAPP.isStateNewestThan(erState,localErStateBeforeEvent))){
+      if((isRemoteStateNewestForApp)&&(ESCAPP._isStateNewestThan(erState,localErStateBeforeEvent))){
         if(typeof ESCAPP.getSettings().onNewErStateCallback === "function"){
           ESCAPP.getSettings().onNewErStateCallback(erState);
         }
@@ -297,7 +297,7 @@ function updateRanking(ranking, eventData){
   let samePosition = (newPosition === prevPosition);
   let positionDown = (newPosition > prevPosition);
 
-  let team = ESCAPP.getTeamFromRanking(TEAM_ID,ranking);
+  let team = ESCAPP._getTeamFromRanking(TEAM_ID,ranking);
   let puzzlesSolved = ((typeof team === "object")&&(typeof team.count === "number")) ? team.count : 0;
   
   let notificationMessage = undefined;

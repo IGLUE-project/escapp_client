@@ -148,9 +148,16 @@ export function replaceAll(string, find, replace){
 
 export function debug(msg){
   if(typeof msg === "object"){
-    console.log("ESCAPP: [Object]");
-    console.log(msg);
+    console.log("ESCAPP:", msg);
   } else {
     console.log("ESCAPP: " + msg);
   }
+};
+
+export function printTime(time){
+  let timeInHours = time/3600;
+  let hours = Math.floor(timeInHours);
+  let minutes = Math.floor((timeInHours - hours)*60);
+  let seconds = time - hours * 3600 - minutes * 60;
+  debug(hours + "h " + minutes + "' " + seconds + "''");
 };

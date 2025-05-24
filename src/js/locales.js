@@ -19,15 +19,17 @@ export let ESCAPP_LOCALES = {
     "i.completion_title":"¡Escape Room Completed!",
     "i.completion_text":"¡Congratulations! You have completed the escape room. On the escapp platform you can check the ranking to see in which position you have ended.",
 
-    "i.initialization_error_title":"Initialization error",
-    "i.initialization_error_endpoint":"Escapp Client could not be started correctly because the Escapp endpoint was not provided.",
-    "i.initialization_error_endpoint_format":"Escapp Client could not be started correctly because the format of the provided Escapp endpoint is incorrect.",
-    "i.initialization_error_linkedPuzzleIds":"Escapp Client could not be started correctly because neither resourceId nor linkedPuzzleIds were provided.",
+    "i.initialization_error_title":"Escapp client initialization error",
+    "i.initialization_error_endpoint":"Escapp client could not be started correctly because the Escapp endpoint was not provided.",
+    "i.initialization_error_endpoint_format":"Escapp client could not be started correctly because the format of the provided Escapp endpoint is incorrect.",
+    "i.initialization_error_linkedPuzzleIds":"Escapp client could not be started correctly because neither resourceId nor linkedPuzzleIds were provided.",
 
-    "i.participation_error_TOO_LATE":"You are a participant of this escape room but the turn you have signed up for has ended or you have run out of time.",
     "i.participation_error_NOT_ACTIVE":"You are a participant of this escape room but the turn you have signed up for has not started yet.",
+    "i.participation_error_NOT_AUTHENTICATED":"Authentication is required before submitting puzzle solutions.",
+    "i.participation_error_NOT_PARTICIPANT":"You are not a participant of this escape room.",
     "i.participation_error_NOT_STARTED":"You are a participant of this escape room but you need to click on the 'Start' button in the Escapp platform in order to start the escape room.",
-    "i.participation_error_NOT_A_PARTICIPANT":"You are not a participant of this escape room.",
+    "i.participation_error_TOO_LATE":"You are a participant of this escape room but the turn you have signed up for has ended or you have run out of time.",
+
 
     "i.puzzles_required": "You shouldn't be here. You must complete previous puzzles before accessing this one.",
 
@@ -73,7 +75,8 @@ export let ESCAPP_LOCALES = {
     "i.notification_time_one_hour": "1 hour to run out of time",
     "i.notification_time_minutes": "#{minutes} minutes to run out of time",
     "i.notification_time_one_minute": "1 minute to run out of time",
-    "i.notification_time_runout": "Time is up!",
+    "i.notification_time_runout": "Time's up!",
+    "i.notification_time_runout_title": "Escape room completed",
 
     "i.not_supported_title":"Unsupported web browser",
     "i.not_supported_text":"We are sorry. Your web browser does not allow to perform this activity. Try a different browser.",
@@ -98,11 +101,17 @@ export let ESCAPP_LOCALES = {
     "i.completion_title":"¡Escape Room Completada!",
     "i.completion_text":"¡Enhorabuena! Has completado la escape room.<br/>En la <a href='#{escappURL}' target='_blank'>plataforma escapp</a> puedes consultar el ranking para ver en que posición has finalizado.",
 
-    "i.participation_error_TOO_LATE":"Eres participante de esta escape room pero el turno al que te has apuntado ha terminado o te has quedado sin tiempo.",
-    "i.participation_error_NOT_ACTIVE":"Eres participante de esta escape room pero el turno al que te has apuntado aún no ha empezado.",
-    "i.participation_error_NOT_STARTED":"Eres participante de esta escape room pero no le has dado al botón de comenzar en la plataforma escapp.",
-    "i.participation_error_NOT_A_PARTICIPANT":"No eres participante de esta escape room.",
+    "i.initialization_error_title":"Error de inicialización de Escapp client",
+    "i.initialization_error_endpoint":"Escapp client no se pudo iniciar correctamente porque no se proporcionó la URL de la plataforma Escapp.",
+    "i.initialization_error_endpoint_format":"Escapp client no se pudo iniciar correctamente porque la URL proporcionada para acceder a la plataforma Escapp tiene un formato incorrecto.",
+    "i.initialization_error_linkedPuzzleIds":"Escapp client no se pudo iniciar correctamente porque no se ha proporcionado ni resourceId ni linkedPuzzleIds.",
 
+    "i.participation_error_NOT_ACTIVE":"Eres participante de esta escape room pero el turno al que te has apuntado aún no ha empezado.",
+    "i.participation_error_NOT_AUTHENTICATED":"Es necesario autenticarse antes de enviar soluciones de retos.",
+    "i.participation_error_NOT_PARTICIPANT":"No eres participante de esta escape room.",
+    "i.participation_error_NOT_STARTED":"Eres participante de esta escape room pero no le has dado al botón de comenzar en la plataforma escapp.",
+    "i.participation_error_TOO_LATE":"Eres participante de esta escape room pero el turno al que te has apuntado ha terminado o te has quedado sin tiempo.",
+ 
     "i.puzzles_required": "No deberías estar aquí. Debes completar retos anteriores antes de acceder a este.",
 
     "i.restore_title":"Actualización de estado",
@@ -148,6 +157,7 @@ export let ESCAPP_LOCALES = {
     "i.notification_time_minutes": "Faltan #{minutes} minutos para que se agote el tiempo",
     "i.notification_time_one_minute": "Falta 1 minuto para que se agote el tiempo",
     "i.notification_time_runout": "¡Se ha agotado el tiempo!",
+    "i.notification_time_runout_title": "Escape room finalizada",
 
     "i.notsupported_title":"Navegador web no soportado",
     "i.notsupported_text":"Lo sentimos. Su navegador web no permite realizar esta actividad. Pruebe con otro navegador.",

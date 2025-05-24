@@ -2,29 +2,26 @@ import * as I18n from './I18n.js';
 import * as Utils from './Utils.js';
 
 let initialized = false;
-let enabled = false;
+let notifications = false;
 let ESCAPP;
 
 let CURRENT_TIME = undefined;
 let TIME_RUNOUT = false;
 let TIMER = undefined;
+let CURRENT_TIMER_DELAY = undefined;
 let TIMER_NOTIFICATION = undefined;
-let RESTART_NOTIFICATION_TIMER = false;
 
 //Constants
 let TIMER_DELAY_MAX = 10;
 let TIMER_DELAY_MIN = 1;
-let CURRENT_TIMER_DELAY = undefined;
 let TIMER_DELAY_THRESHOLD = 4*60;
 let ER_DURATION;
 let NOTIFICATION_TIMES = [0,1,2,5,10,15,30,45,60,75,90,105];
 
 export function init(options = {}){
-  if(initialized === true){
-    return;
-  }
+  if(initialized === true) return;
   initialized = true;
-  enabled = (options.enabled === true);
+  notifications = (options.notifications === true);
   ESCAPP = options.escapp;
 };
 
@@ -32,26 +29,21 @@ export function getTimeRunout(){
   return TIME_RUNOUT;
 }
 
+export function getNotificationsEnabled(){
+  return notifications;
+}
+
 export function startTimer(currentRemainingTime, duration){
-  if(typeof CURRENT_TIME !== "undefined"){
-    return; //Already started
-  }
-  if((typeof currentRemainingTime !== "number")||(typeof duration !== "number")){
-    return;
-  }
+  if(typeof CURRENT_TIME !== "undefined") return; //Already started
+  if((typeof currentRemainingTime !== "number")||(typeof duration !== "number")) return;
+
   if((currentRemainingTime <= 0)||(duration <= 0)){
     TIME_RUNOUT = true;
-    return;
-  }
-  if(enabled !== true){
     return;
   }
 
   CURRENT_TIME = currentRemainingTime;
   ER_DURATION = duration;
-
-  // For development
-  // CURRENT_TIME = 0*60*60 + 45*60 + 6;
 
   //Adjust timer
   let timeInHours = CURRENT_TIME/3600;
@@ -59,61 +51,53 @@ export function startTimer(currentRemainingTime, duration){
   let minutes = Math.floor((timeInHours - hours)*60);
   let seconds = CURRENT_TIME - hours * 3600 - minutes * 60;
   CURRENT_TIMER_DELAY = (CURRENT_TIME > TIMER_DELAY_THRESHOLD) ? TIMER_DELAY_MAX : TIMER_DELAY_MIN;
-  let adjustingTime = seconds%CURRENT_TIMER_DELAY;
+  let adjustmentTime = seconds%CURRENT_TIMER_DELAY;
 
   setTimeout(function(){
-    CURRENT_TIME = Math.max(0,CURRENT_TIME - adjustingTime);
-    initTimer();
-    startNotificationTimer();
-  },adjustingTime*1000);
+    CURRENT_TIME = Math.max(0,CURRENT_TIME - adjustmentTime);
+    _startTimer();
+    if(notifications) startNotificationTimer();
+  },adjustmentTime*1000);
 };
 
-function initTimer(){
-  if((typeof CURRENT_TIME !== "number")||(CURRENT_TIME <= 0)){
-    return;
-  }
-
+function _startTimer(){
+  if(typeof TIMER !== "undefined") clearInterval(TIMER);
+  if((typeof CURRENT_TIME !== "number")||(CURRENT_TIME <= 0)) return;
+  
   if(CURRENT_TIME > TIMER_DELAY_THRESHOLD){
-    initTimerDelayMax();
+    CURRENT_TIMER_DELAY = TIMER_DELAY_MAX;
   } else {
-    initTimerDelayMin();
+    CURRENT_TIMER_DELAY = TIMER_DELAY_MIN;
   }
-};
 
-function initTimerDelayMax(){
-  if(typeof TIMER !== "undefined"){
-     clearInterval(TIMER);
-  }
-  CURRENT_TIMER_DELAY = TIMER_DELAY_MAX;
   TIMER = setInterval(function(){
-    CURRENT_TIME = Math.max(0,CURRENT_TIME - TIMER_DELAY_MAX);
-    if(CURRENT_TIME <= TIMER_DELAY_THRESHOLD){
-      initTimerDelayMin();
-    }
-  },TIMER_DELAY_MAX * 1000);
-};
+    CURRENT_TIME = Math.max(0,CURRENT_TIME - CURRENT_TIMER_DELAY);
 
-function initTimerDelayMin(){
-  if(typeof TIMER !== "undefined"){
-     clearInterval(TIMER);
-  }
-  CURRENT_TIMER_DELAY = TIMER_DELAY_MIN;
-  TIMER = setInterval(function(){
-    CURRENT_TIME = Math.max(0,CURRENT_TIME - TIMER_DELAY_MIN);
-    if(CURRENT_TIME === 0){
-      TIME_RUNOUT = true;
-      clearInterval(TIMER);
-      if(NOTIFICATION_TIMES.indexOf(0)!==-1){
-        showNotification();
+    if(CURRENT_TIMER_DELAY === TIMER_DELAY_MAX){
+      if(CURRENT_TIME <= TIMER_DELAY_THRESHOLD){
+        _startTimer(); //This will init the timer with TIMER_DELAY_MIN;
+      }
+    } else {
+      //CURRENT_TIMER_DELAY === TIMER_DELAY_MIN
+      if(CURRENT_TIME === 0){
+        TIME_RUNOUT = true;
+        clearInterval(TIMER);
+        if((notifications)&&(NOTIFICATION_TIMES.indexOf(0)!==-1)){
+          showNotification();
+        }
+        ESCAPP._onTimeRunOut();
       }
     }
-  },TIMER_DELAY_MIN * 1000);
+  },CURRENT_TIMER_DELAY * 1000);
 };
 
+
+//////////////////////
+// Time notifications
+//////////////////////
+
 function startNotificationTimer(){
-  if((typeof CURRENT_TIME !== "number")||(TIME_RUNOUT === true)){
-    return;
-  }
+  if((typeof CURRENT_TIME !== "number")||(TIME_RUNOUT === true)) return;
   if(typeof TIMER_NOTIFICATION !== "undefined"){
      clearTimeout(TIMER_NOTIFICATION);
   }
@@ -139,9 +123,7 @@ function startNotificationTimer(){
 
   if(typeof delay === "number"){
     TIMER_NOTIFICATION = setTimeout(function(){
-      if(TIME_RUNOUT === true){
-        return;
-      }
+      if(TIME_RUNOUT === true) return;
       showNotification();
       setTimeout(function(){
         startNotificationTimer();
@@ -151,15 +133,7 @@ function startNotificationTimer(){
 };
 
 function showNotification(){
-  if(typeof CURRENT_TIME !== "number"){
-    return;
-  }
-  if(Math.abs(CURRENT_TIME - ER_DURATION) < 30){
-    return;
-  }
-  if(ESCAPP.isERCompleted()===true){
-    return;
-  }
+  if((notifications!==true)||(typeof CURRENT_TIME !== "number")||(ESCAPP.isERCompleted())||((Math.abs(CURRENT_TIME - ER_DURATION) < 30))) return;
 
   let text = undefined;
   let timeInHours = CURRENT_TIME/3600;
@@ -204,12 +178,4 @@ function showNotification(){
   if(typeof text === "string"){
     ESCAPP.displayCustomNotification(text, {type: "time"});
   }
-};
-
-function printTime(time){
-  let timeInHours = time/3600;
-  let hours = Math.floor(timeInHours);
-  let minutes = Math.floor((timeInHours - hours)*60);
-  let seconds = time - hours * 3600 - minutes * 60;
-  console.log("TIME: " + hours + "h " + minutes + "' " + seconds + "''");
 };

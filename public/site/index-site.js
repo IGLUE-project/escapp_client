@@ -27,16 +27,20 @@ let loadEvents = function(){
 				console.log("State to restore:");
 				console.log(erState);
 			} else {
-				console.log("Browser not supported");
+				console.log("User has not been validated");
 			}
 		});
 	});
 
 	$("#auth").click(function(){
 		escapp.validateUser(function(success,erState){
-			console.log("User validated (authenticated, authorized and participation verified)");
-			console.log("State to restore:");
-			console.log(erState);
+			if(success){
+				console.log("User validated (authenticated, authorized and participation verified)");
+				console.log("State to restore:");
+				console.log(erState);
+			} else {
+				console.log("User has not been authenticated");
+			}
 		});
 	});
 
@@ -64,9 +68,9 @@ let loadEvents = function(){
 	});
 
 	$("#spuzzle, #pdialog").click(function(){
-		//AUTH REQUIRED
-		if(escapp.isUserLoggedIn()===false){
-			return escapp.displayCustomEscappDialog("Authentication required","You must authenticate before submitting solutions. To authenticate, click the 'Authenticate' button.");
+		//Validation required
+		if(escapp.isUserValidParticipant()===false){
+			return escapp.displayCustomEscappDialog("Validation required","The user must be validated before submitting a solution. To do so, click the 'Validate' button.");
 		}
 		let dialogOptions = {};
 		// dialogOptions.inputs = [{"type":"password"}];
@@ -88,9 +92,9 @@ let loadEvents = function(){
 	});
 
 	$("#cpuzzle").click(function(){
-		//AUTH REQUIRED
-		if(escapp.isUserLoggedIn()===false){
-			return escapp.displayCustomEscappDialog("Authentication required","You must authenticate before checking solutions. To authenticate, click the 'Authenticate' button.");
+		//Validation required
+		if(escapp.isUserValidParticipant()===false){
+			return escapp.displayCustomEscappDialog("Validation required","The user must be validated before checking a solution. To do so, click the 'Validate' button.");
 		}
 		let dialogOptions = {};
 		// dialogOptions.inputs = [{"type":"password"}];

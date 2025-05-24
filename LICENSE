@@ -695,8 +695,9 @@ Third-Party Dependencies
 Escapp client uses or has parts based on the following third-party software (each third-party software is licensed under its respective license):
 
 jQuery v3.7.1 | (c) OpenJS Foundation and other contributors | jquery.org/license | MIT license.
-JavaScript MD5 (https://github.com/blueimp/JavaScript-MD5) | Copyright 2011, Sebastian Tschan | MIT license.
+JavaScript MD5 (https://github.com/blueimp/JavaScript-MD5) | Copyright (c) 2011 Sebastian Tschan | MIT license.
 Notify.js (http://notifyjs.com/) | Copyright (c) 2015 Jaime Pillora | MIT license.
+Micromodal.js (https://github.com/micromodal/Micromodal) | Copyright (c) 2017 Indrashish Ghosh | MIT license.
 webpack Boilerplate (https://github.com/taniarascia/webpack-boilerplate) | Copyright (c) 2019 Tania Rascia | MIT license.
 Software included as dependencies in the package.json file.
 
