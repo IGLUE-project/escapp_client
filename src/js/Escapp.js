@@ -106,7 +106,7 @@ export default function ESCAPP(_settings){
       _appSettings = {};
     }
 
-    if(typeof _appSettings.escappClientSettings == "object"){
+    if(typeof _appSettings.escappClientSettings === "object"){
       _settings = Utils.deepMerge(_settings, Object.assign({}, _appSettings.escappClientSettings));
     }
 
@@ -130,7 +130,7 @@ export default function ESCAPP(_settings){
       }
     }
 
-    if((typeof settings.relatedPuzzleIds !== "object")&&(typeof settings.linkedPuzzleIds == "object")){
+    if((typeof settings.relatedPuzzleIds !== "object")&&(typeof settings.linkedPuzzleIds === "object")){
       settings.relatedPuzzleIds = settings.linkedPuzzleIds;
     }
 
@@ -223,17 +223,14 @@ export default function ESCAPP(_settings){
           attempts += 1;
           win = win.parent;
       }
+      if(typeof win.ESCAPP_APP_SETTINGS === "object"){
+        return win.ESCAPP_APP_SETTINGS;
+      }
     } catch (e) {
       //Catch cross domain issues
     }
-
-    if(typeof win.ESCAPP_APP_SETTINGS == "object"){
-      return win.ESCAPP_APP_SETTINGS;
-    } else {
-      return undefined;
-    }
+    return undefined;
   };
-
 
   this._isValidEscappEndpoint = function(url) {
     const regex = /^(https?:\/\/[a-zA-Z][^\/]*\/api\/escapeRooms\/[0-9]+)$/;
