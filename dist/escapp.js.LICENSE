@@ -699,8 +699,9 @@ JavaScript MD5 (https://github.com/blueimp/JavaScript-MD5) | Copyright (c) 2011 
 Notify.js (http://notifyjs.com/) | Copyright (c) 2015 Jaime Pillora | MIT license.
 Micromodal.js (https://github.com/micromodal/Micromodal) | Copyright (c) 2017 Indrashish Ghosh | MIT license.
 webpack Boilerplate (https://github.com/taniarascia/webpack-boilerplate) | Copyright (c) 2019 Tania Rascia | MIT license.
-Software included as dependencies in the package.json file.
+Software included as dependencies in the package.json file: https://github.com/iglue-project/escapp_client/blob/master/package.json.
 
+-------------------------------------------------------------------------------------------------
 
 The full text of the MIT License is as follows:
 
@@ -723,3 +724,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+-------------------------------------------------------------------------------------------------
+
+Assets
+
+Images are licensed under the CC0 license (https://creativecommons.org/publicdomain/zero/1.0/).
