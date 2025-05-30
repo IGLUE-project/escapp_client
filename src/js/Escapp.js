@@ -29,6 +29,7 @@ export default function ESCAPP(_settings){
       email: undefined,
       token: undefined,
     },
+    preview: false,
     silent: false,
     forceValidation: true,
     autovalidate: false,
@@ -117,6 +118,14 @@ export default function ESCAPP(_settings){
     // Merge _settings with defaultSettings and defaultReadOnlySettings to obtain final settings
     settings = Utils.deepMerge(Utils.deepMerge(defaultSettings, _settings), defaultReadOnlySettings);
 
+    if(settings.preview === true){
+      settings.silent = true;
+      settings.rtc = false;
+      settings.restoreState = "NEVER";
+    } else {
+      settings.preview = false;
+    }
+
     if(settings.silent === true){
       settings.forceValidation = false;
       settings.notifications = false;
@@ -128,6 +137,8 @@ export default function ESCAPP(_settings){
           settings.restoreState = "NEVER";
         }
       }
+    } else {
+      settings.silent = false;
     }
 
     if((typeof settings.relatedPuzzleIds !== "object")&&(typeof settings.linkedPuzzleIds === "object")){
@@ -136,7 +147,7 @@ export default function ESCAPP(_settings){
 
     //Check URL params
     let URL_params = Utils.getParamsFromCurrentUrl();
-    if(typeof URL_params.escapp_endpoint !== "undefined"){
+    if((typeof settings.endpoint !== "string")&&(typeof URL_params.escapp_endpoint !== "undefined")){
       settings.endpoint = Utils.checkUrlProtocol(URL_params.escapp_endpoint);
     }
     if(typeof settings.endpoint === "string"){
@@ -152,7 +163,11 @@ export default function ESCAPP(_settings){
       if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
         settings.resourceId = settings.linkedPuzzleIds.join("-");
       } else {
-        initializationErrors.push("i.initialization_error_linkedPuzzleIds");
+        if(settings.preview){
+          initializationErrors.push("i.initialization_error_linkedPuzzleIds");
+        } else {
+          settings.resourceId = "preview";
+        }
       }
     }
 
@@ -165,14 +180,18 @@ export default function ESCAPP(_settings){
     
     //Init modules
     I18n.init(settings.I18n);
-    LocalStorage.init(settings.localStorageKey);
-    LocalStorageApp.init(LocalStorage);
+    LocalStorage.init(settings.localStorageKey,settings.preview);
+    LocalStorageApp.init(LocalStorage,settings.preview);
     Encrypt.init(settings.encryptKey);
     Dialogs.init({imagesPath: settings.imagesPath});
     Notifications.init({enabled: settings.notifications});
     Animations.init({imagesPath: settings.imagesPath});
     Events.init({endpoint: settings.endpoint, escapp: this});
     Countdown.init({notifications: ((Notifications.isEnabled())&&(settings.countdown)), escapp: this});
+
+    if(settings.preview){
+      this._resetForPreview();
+    }
 
     //User credentials. Priority: settings, URL params, LocalStorage.
     if(typeof this._getUserCredentials(settings.user) === "undefined"){
@@ -194,14 +213,15 @@ export default function ESCAPP(_settings){
       settings.user.authenticated = false;
     }
     
-    //Get escape room state from LocalStorage
+    //Init escape room state
     let localErState = LocalStorage.getSetting("localErState");
     if(this._validateERState(localErState)===false){
       localErState = Utils.deepMerge({}, defaultERState);
     }
     settings.localErState = localErState;
     LocalStorage.saveSetting("localErState",settings.localErState);
-
+    this._updateAppPuzzlesState();
+ 
     //Include JQuery
     if((settings.jQuery === true)&&(typeof window.jQuery === "undefined")){
       window.$ = window.jQuery = this.getJQuery();
@@ -285,14 +305,6 @@ export default function ESCAPP(_settings){
       userCredentials.password = user.password;
     }
     return userCredentials;
-  };
-
-  this._resetUserCredentials = function(){
-    settings.user = Object.assign({}, defaultReadOnlySettings.user);
-    settings.localErState = defaultERState;
-    settings.remoteErState = undefined;
-    LocalStorage.removeSetting("localErState");
-    LocalStorage.removeSetting("user");
   };
 
   this.isSupported = function(){
@@ -399,8 +411,25 @@ export default function ESCAPP(_settings){
   };
 
   this._retryAfterAuthFail = function(callback){
-    this._resetUserCredentials();
+    this._resetUser();
     return this.validateUser(callback);
+  };
+
+  this._resetUser = function(){
+    settings.user = Object.assign({}, defaultReadOnlySettings.user);
+    LocalStorage.removeSetting("user");
+    this._resetErState();
+  };
+
+  this._resetErState = function(){
+    settings.localErState = defaultERState;
+    settings.remoteErState = undefined;
+    LocalStorage.removeSetting("localErState");
+  };
+
+  this._resetForPreview = function(){
+    this._resetErState();
+    LocalStorage.clear();
   };
 
   this._validateUserAfterAuth = function(callback){
@@ -840,7 +869,7 @@ export default function ESCAPP(_settings){
   };
 
   this._updateRemoteErState = function(remoteErState){
-    if(this._validateERState(remoteErState) === false) return;
+    if((this._validateERState(remoteErState) === false)||(settings.preview)) return;
     settings.remoteErState = remoteErState;
 
     //Check restart
@@ -915,6 +944,9 @@ export default function ESCAPP(_settings){
     }
     if(typeof erState.remainingTime === "number"){
       settings.remainingTime = erState.remainingTime;
+    }
+    if((settings.preview)&&(typeof settings.remainingTime !== "number")&&(typeof settings.duration === "number")){
+      settings.remainingTime = settings.duration;
     }
   };
 
@@ -999,9 +1031,12 @@ export default function ESCAPP(_settings){
 
     let that = this;
     let authUserURL = settings.endpoint + "/auth";
+    let body = Object.assign({}, userCredentials);
+    body.preview = settings.preview;
+
     fetch(authUserURL, {
         "method": "POST",
-        "body": JSON.stringify(userCredentials),
+        "body": JSON.stringify(body),
         headers: {
             "Content-type": "application/json",
             "Accept-Language": "es-ES"
@@ -1032,13 +1067,26 @@ export default function ESCAPP(_settings){
     this._auth(settings.user,function(success){
       if((success)&&(settings.user.authenticated)){
         //User is authenticated.
+
+        //Preview mode
+        if (settings.preview){
+          if(["AUTHOR","PARTICIPANT"].indexOf(settings.user.participation) !== -1){
+            //User can show preview
+            return this._validateUserAfterAuth(callback);
+          } else {
+            //Preview mode is always silent
+            return this._safeCall(callback,false);
+          }
+        }
+
+        //Play mode
         if(["PARTICIPANT","NOT_STARTED"].indexOf(settings.user.participation) !== -1){
           //User is a valid participant.
           if (settings.user.participation === "NOT_STARTED"){
             //User is authenticated and a participant, but the escape room needs to be started.
             if (settings.silent) return this._safeCall(callback,false);
             //Ask the participant if he/she wants to start the escape room.
-            this._startEscapeRoom(function(started){
+            return this._startEscapeRoom(function(started){
               if(started === true){
                 return this._validateUserAfterAuth(callback);
               } else {
@@ -1050,7 +1098,7 @@ export default function ESCAPP(_settings){
           }
         } else {
           if (settings.silent) return this._safeCall(callback,false);
-          this._displayUserParticipationErrorDialog(function(){
+          return this._displayUserParticipationErrorDialog(function(){
             this._safeCall(callback,false);
           }.bind(this));
         }
@@ -1061,7 +1109,7 @@ export default function ESCAPP(_settings){
   };
 
   this.submitPuzzle = function(puzzleId,solution,options={},callback){
-    if((this.isUserValidParticipant()===false)&&(settings.silent===false)) return this._displayUserParticipationErrorDialog(callback);
+    if((this.isUserValidParticipant()===false)&&(!settings.silent)) return this._displayUserParticipationErrorDialog(callback);
 
     let userCredentials = this._getUserCredentials(settings.user);
     if(typeof userCredentials === "undefined"){
@@ -1073,11 +1121,15 @@ export default function ESCAPP(_settings){
     if(settings.puzzlesRequirements !== true){
       return this._safeCall(callback,false,{msg: "Invalid puzzle requirements"});
     }
+    if(settings.preview){
+      options.readonly = true;
+    }
 
     let that = this;
     let submitPuzzleURL = settings.endpoint + "/puzzles/" + puzzleId + ((options.readonly === true) ? "/check_solution" : "/submit");
     let body = userCredentials;
     body.solution = solution;
+    body.preview = settings.preview;
     
     fetch(submitPuzzleURL, {
       method: 'POST',
@@ -1087,13 +1139,14 @@ export default function ESCAPP(_settings){
         "Accept-Language": "es-ES"
       }
     }).then(res => res.json()).then(function(res){
-        if(res.participation !== "PARTICIPANT"){
-          if(settings.silent===false) {
+        let validUser = ((res.participation === "PARTICIPANT")||((settings.preview)&&(["AUTHOR"].indexOf(settings.user.participation) !== -1)));
+        if(!validUser){
+          if(!settings.silent) {
             return that._displayUserParticipationErrorDialog(function(){
               this._safeCall(callback,false,res);
             }.bind(that));
           } else {
-            that._safeCall(callback,false,res);
+            return that._safeCall(callback,false,res);
           }
         }
 
@@ -1113,7 +1166,7 @@ export default function ESCAPP(_settings){
         that._safeCall(callback,success,res);
       }
     ).catch(function(error){
-      if(settings.silent===true) return that._safeCall(callback,false);
+      if(settings.silent) return that._safeCall(callback,false);
       that._displayConnectionErrorDialog(true,function(dialogResponse){
         if(dialogResponse === "retry"){
           that.submitPuzzle(puzzleId,solution,options,callback);
@@ -1164,7 +1217,7 @@ export default function ESCAPP(_settings){
         that._safeCall(callback,startSuccess,res);
       }
     ).catch(function(error){
-      if(settings.silent===true) return that._safeCall(callback,false);
+      if(settings.silent) return that._safeCall(callback,false);
       that._displayConnectionErrorDialog(true,function(dialogResponse){
         if(dialogResponse === "retry"){
           that.start(callback);
@@ -1259,7 +1312,14 @@ export default function ESCAPP(_settings){
   };
 
   this.isUserValidParticipant = function(){
-    return ((settings.user.authenticated === true)&&(settings.user.participation==="PARTICIPANT"));
+    if ((typeof this._getUserCredentials(settings.user) === "undefined")||(settings.user.authenticated !== true)) return false;
+    if (settings.user.participation==="PARTICIPANT") return true;
+    if ((settings.preview)&&(["AUTHOR"].indexOf(settings.user.participation) !== -1)) return true;
+    return false;
+  };
+
+  this.isPreviewMode = function(){
+    return settings.preview;
   };
 
   this.getNextPuzzle = function(){
@@ -1274,7 +1334,7 @@ export default function ESCAPP(_settings){
     if((this._validateERState(settings.localErState)) && (settings.localErState.strictTime === true)){
       settings.user.participation = "TOO_LATE";
 
-      if((settings.silent !== true)&&(Countdown.getNotificationsEnabled() === false)){
+      if((!settings.silent)&&(Countdown.getNotificationsEnabled() === false)){
         //Notify when time runs out through dialogs when time notifications are not enabled
         this.displayCustomEscappDialog(I18n.getTrans("i.notification_time_runout_title"),I18n.getTrans("i.notification_time_runout"),{});
       }
@@ -1294,7 +1354,7 @@ export default function ESCAPP(_settings){
   };
 
   this.reset = function(callback){
-    this._resetUserCredentials();
+    this._resetUser();
     LocalStorage.clear();
     this._safeCall(callback);
   };

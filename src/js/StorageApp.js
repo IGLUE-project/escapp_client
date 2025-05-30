@@ -1,22 +1,24 @@
 let localStorage;
+let enabled = false;
 let appKey = "appData";
 
-export function init(_localStorage){
+export function init(_localStorage,preview){
   localStorage = _localStorage;
+  enabled = ((typeof localStorage !== "undefined")&&(!preview));
 }
 
 export function getSetting(settingName){
-  return (typeof localStorage === "undefined") ? undefined : localStorage.getChildSetting(appKey,settingName);
+  return enabled ? localStorage.getChildSetting(appKey,settingName) : undefined;
 }
 
 export function saveSetting(settingName,value){
-  return (typeof localStorage === "undefined") ? undefined : localStorage.saveChildSetting(appKey,settingName,value);
+	return enabled ? localStorage.saveChildSetting(appKey,settingName,value) : undefined;
 }
 
 export function removeSetting(settingName){
-  return (typeof localStorage === "undefined") ? undefined : localStorage.removeChildSetting(appKey,settingName);
+  return enabled ? localStorage.removeChildSetting(appKey,settingName) : undefined;
 }
 
 export function clear(){
-  return (typeof localStorage === "undefined") ? undefined : localStorage.removeSetting(appKey);
+  return enabled ? localStorage.removeSetting(appKey) : undefined;
 }

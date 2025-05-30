@@ -1,13 +1,12 @@
-let ls_supported = false;
+let lsSupported = false;
+let enabled = false;
 let storageKey;
 
-export function init(lsStorageKey){
-  if(typeof storageKey !== "undefined"){
-    return; //prevent multiple inits
-  }
-  storageKey = lsStorageKey;
-  ls_supported = isSupported();
-  return ls_supported;
+export function init(_storageKey,preview){
+  if ((typeof storageKey !== "undefined")||(typeof _storageKey !== "string")) return;
+  storageKey = _storageKey;
+  lsSupported = isSupported();
+  enabled = ((lsSupported)&&(!preview));
 }
 
 export function isSupported(){
@@ -18,9 +17,7 @@ export function isSupported(){
 }
 
 function getData(){
-  if(ls_supported === false){
-    return {};
-  }
+  if (!enabled) return {};
   let storedData = localStorage.getItem(storageKey);
   if((typeof storedData === "undefined")||(storedData === null)){
     return {};
@@ -33,9 +30,7 @@ function getData(){
 }
 
 function saveData(data){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   try {
     data = JSON.stringify(data);
     localStorage.setItem(storageKey,data);
@@ -46,9 +41,7 @@ function saveData(data){
 }
 
 export function getSetting(settingName){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   let data = getData();
   if(typeof data === "object"){
     return data[settingName];
@@ -57,9 +50,7 @@ export function getSetting(settingName){
 }
 
 export function saveSetting(settingName,value){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   let data = getData();
   if(typeof data === "object"){
     data[settingName] = value;
@@ -69,9 +60,7 @@ export function saveSetting(settingName,value){
 }
 
 export function removeSetting(settingName){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   let data = getData();
   if(typeof data === "object"){
     delete data[settingName];
@@ -81,17 +70,14 @@ export function removeSetting(settingName){
 }
 
 export function clear(){
-  if(ls_supported === false){
-    return undefined;
+  if (lsSupported) {
+    localStorage.removeItem(storageKey);
   }
-  localStorage.removeItem(storageKey);
   return undefined;
 }
 
 export function getChildSetting(parentSetting,settingName){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   let data = getSetting(parentSetting);
   if(typeof data === "object"){
     return data[settingName];
@@ -100,9 +86,7 @@ export function getChildSetting(parentSetting,settingName){
 }
 
 export function saveChildSetting(parentSetting,settingName,value){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   let data = getSetting(parentSetting);
   if(typeof data === "undefined"){
     data = {};
@@ -115,9 +99,7 @@ export function saveChildSetting(parentSetting,settingName,value){
 }
 
 export function removeChildSetting(parentSetting,settingName){
-  if(ls_supported === false){
-    return undefined;
-  }
+  if (!enabled) return undefined;
   let data = getSetting(parentSetting);
   if(typeof data === "object"){
     delete data[settingName];
