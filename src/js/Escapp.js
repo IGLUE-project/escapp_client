@@ -1330,8 +1330,8 @@ export default function ESCAPP(_settings){
   };
 
   this.getSolvedPuzzles = function(){
-    if((typeof settings.localErState === "object")&&(settings.localErState.puzzlesSolved instanceof Array)){
-      return settings.localErState.puzzlesSolved;
+    if((settings.linkedPuzzleIds instanceof Array)&&(this._validateERState(settings.localErState))&&(settings.localErState.puzzlesSolved instanceof Array)){
+      return settings.localErState.puzzlesSolved.filter(puzzleId => settings.linkedPuzzleIds.includes(puzzleId));
     }
     return [];
   };
