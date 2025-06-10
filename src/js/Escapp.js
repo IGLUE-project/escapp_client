@@ -60,6 +60,7 @@ export default function ESCAPP(_settings){
     },
     localErState: undefined,
     remoteErState: undefined,
+    lastSolvedPuzzleId: undefined,
     nextPuzzleId: undefined,
     allPuzzlesSolved: false,
     teamName: undefined,
@@ -901,7 +902,7 @@ export default function ESCAPP(_settings){
       }
     }
 
-    //Update nextPuzzleId and allPuzzlesSolved
+    //Update lastSolvedPuzzleId, nextPuzzleId and allPuzzlesSolved
     this._updateAppPuzzlesState();
 
     //Progress and score
@@ -951,20 +952,26 @@ export default function ESCAPP(_settings){
   };
 
   this._updateAppPuzzlesState = function(){
-     let _nextPuzzleId;
-     let _allPuzzlesSolved = false;
+    let _lastSolvedPuzzleId = undefined;
+    let _nextPuzzleId = undefined;
+    let _allPuzzlesSolved = false;
 
-     if((settings.linkedPuzzleIds instanceof Array)&&(settings.linkedPuzzleIds.length > 0)){
-      if((typeof settings.localErState === "object")&&(settings.localErState.puzzlesSolved instanceof Array)){
-        let puzzlesUnsolved = settings.linkedPuzzleIds.filter(puzzleId => !settings.localErState.puzzlesSolved.includes(puzzleId));
-        if(puzzlesUnsolved.length > 0){
-          _nextPuzzleId = Math.min(...puzzlesUnsolved);
-        } else {
-          _allPuzzlesSolved = true;
-          _nextPuzzleId = Math.max(...settings.linkedPuzzleIds);
-        }
+    let puzzlesSolved = this.getSolvedPuzzles();
+    if((puzzlesSolved instanceof Array)&&(puzzlesSolved.length > 0)){
+      _lastSolvedPuzzleId = Math.max(...puzzlesSolved);
+    }
+
+    let puzzlesUnsolved = this.getUnsolvedPuzzles();
+    if(puzzlesUnsolved instanceof Array){
+      if(puzzlesUnsolved.length > 0){
+        _nextPuzzleId = Math.min(...puzzlesUnsolved);
+      } else {
+        _allPuzzlesSolved = true;
+        _nextPuzzleId = _lastSolvedPuzzleId;
       }
     }
+
+    settings.lastSolvedPuzzleId = _lastSolvedPuzzleId;
     settings.nextPuzzleId = _nextPuzzleId;
     settings.allPuzzlesSolved = _allPuzzlesSolved;
   };
@@ -1320,6 +1327,37 @@ export default function ESCAPP(_settings){
 
   this.isPreviewMode = function(){
     return settings.preview;
+  };
+
+  this.getSolvedPuzzles = function(){
+    if((typeof settings.localErState === "object")&&(settings.localErState.puzzlesSolved instanceof Array)){
+      return settings.localErState.puzzlesSolved;
+    }
+    return [];
+  };
+
+  this.getUnsolvedPuzzles = function(){
+    let puzzlesSolved = this.getSolvedPuzzles();
+    if((settings.linkedPuzzleIds instanceof Array)&&(puzzlesSolved instanceof Array)){
+      return settings.linkedPuzzleIds.filter(puzzleId => !puzzlesSolved.includes(puzzleId));
+    }
+    return [];
+  };
+
+  this.getLastSolvedPuzzle = function(){
+    return settings.lastSolvedPuzzleId;
+  };
+
+  this.getLastSolution = function(){
+    if(typeof settings.lastSolvedPuzzleId !== "undefined") {
+      if((this._validateERState(settings.localErState))&&(typeof settings.localErState.puzzleData === "object")){
+        let puzzleData = settings.localErState.puzzleData[settings.lastSolvedPuzzleId];
+        if((typeof puzzleData === "object")&&(typeof puzzleData.solution === "string")){
+          return puzzleData.solution;
+        }
+      }
+    }
+    return undefined;
   };
 
   this.getNextPuzzle = function(){
