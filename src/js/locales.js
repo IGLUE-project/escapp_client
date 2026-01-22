@@ -30,7 +30,6 @@ export let ESCAPP_LOCALES = {
     "i.participation_error_NOT_STARTED":"You are a participant of this escape room but you need to click on the 'Start' button in the Escapp platform in order to start the escape room.",
     "i.participation_error_TOO_LATE":"You are a participant of this escape room but the turn you have signed up for has ended or you have run out of time.",
 
-
     "i.puzzles_required": "You shouldn't be here. You must complete previous puzzles before accessing this one.",
 
     "i.restore_title":"Status update",
@@ -162,4 +161,86 @@ export let ESCAPP_LOCALES = {
     "i.notsupported_title":"Navegador web no soportado",
     "i.notsupported_text":"Lo sentimos. Su navegador web no permite realizar esta actividad. Pruebe con otro navegador.",
   },
+  sr:{
+    "i.button_ok":"U redu",
+    "i.button_nok":"Otkaži",
+    "i.button_retry":"Pokušaj ponovo",
+
+    "i.generic_error_title":"Greška",
+
+    "i.auth_title":"Potrebna je autentifikacija",
+    "i.auth_text":"Unesite svoje Escapp korisničke akreditive (e-poštu i lozinku). Da bi ova autentifikacija bila uspešna, morate se prethodno registrovati sa svojim korisničkim imenom u escape sobi na Escapp platformi.",
+    "i.auth_title_wrong_credentials":"Greška pri autentifikaciji",
+    "i.auth_text_wrong_credentials":"Uneti akreditivi nisu ispravni. Potrebno je da unesete svoje Escapp korisničke akreditive (e-poštu i lozinku). Da bi ova autentifikacija bila uspešna, morate se prethodno registrovati sa svojim korisničkim imenom u escape sobi na Escapp platformi.",
+    "i.auth_email_label":"Email",
+    "i.auth_password_label":"Lozinka",
+
+    "i.connecton_error_title": "Greška u povezivanju",
+    "i.connecton_error_text": "Nije moguće povezati se sa Escapp platformom.",
+    
+    "i.completion_title":"Escape soba završena!",
+    "i.completion_text":"¡Čestitamo! Završili ste escape sobu. Na Escapp platformi možete proveriti tabelu da biste videli na kojoj ste poziciji završili.",
+
+    "i.initialization_error_title":"Greška pri inicijalizaciji Escapp klijenta",
+    "i.initialization_error_endpoint":"Escapp klijent nije mogao biti ispravno pokrenut jer krajnja tačka (endpoint) Escapp-a nije navedena.",
+    "i.initialization_error_endpoint_format":"Escapp klijent nije mogao biti ispravno pokrenut jer je format navedene krajnje tačke (endpoint) Escapp-a netačant.",
+    "i.initialization_error_linkedPuzzleIds":"Escapp klijent nije mogao biti ispravno pokrenut jer nisu navedeni ni resourceId ni linkedPuzzleIds.",
+
+    "i.participation_error_NOT_ACTIVE":"Vi ste učesnik ove escape sobe, ali smena za koju ste se prijavili još nije počela.",
+    "i.participation_error_NOT_AUTHENTICATED":"Potrebna je autentifikacija pre slanja rešenja zagonetki.",
+    "i.participation_error_NOT_PARTICIPANT":"Niste učesnik ove escape sobe.",
+    "i.participation_error_NOT_STARTED":"Vi ste učesnik ove escape sobe, ali morate da kliknete na dugme „Start“ na Escapp platformi da biste pokrenuli escape sobu.",
+    "i.participation_error_TOO_LATE":"Vi ste učesnik ove escape sobe, ali smena za koju ste se prijavili je završena ili vam je isteklo vreme.",
+
+    "i.puzzles_required": "Vi ne bi trebalo da budete ovde. Morate da završite prethodne zagonetke pre nego što pristupite ovoj.",
+
+    "i.restore_title":"Ažuriranje statusa",
+    "i.restore_auto_text":"Noviji status aplikacije je pronađen na Escapp serveru. Aplikacija će biti ažurirana na osnovu ovog statusa.",
+    "i.restore_request_text":" Noviji status aplikacije je pronađen na Escapp serveru. Da li želite da ažurirate aplikaciju na osnovu ovog statusa? Ako to ne učinite, vaša aplikacija bi mogla biti u drugačijem stanju od ostalih članova vašeg tima.",
+  
+    "i.start_title":"Da li želite da pokrenete escape sobu?",
+    "i.start_text":"Pritisnite 'U redu' da biste odmah pokrenuli escape sobu ili 'Otkaži' da biste je pokrenuli kasnije.<br/>Kada se escape soba pokrene, vreme će početi da teče i ne može se zaustaviti.",
+
+    "i.notification_start": "Escape Soba počinje. Srećno #{team}!",
+    "i.notification_member_join": "#{member} se pridružio Escape Room-u",
+    "i.notification_member_leave": "#{member} je napustio Escape Room",
+    "i.notification_hint_new": "Vaš tim je dobio novi savet (hint). Pristupite Escapp platformi da biste ga pročitali.",
+    "i.notification_puzzle_success": "Vaš tim je rešio novu zagonetku.",
+    "i.notification_puzzle_success_end1": "Dobro odrađeno #{team}!",
+    "i.notification_puzzle_success_end2": "Veoma dobro #{team}!",
+    "i.notification_puzzle_success_end3": "Samo nastavite sa dobrim radom #{team}!",
+    
+    "i.notification_ranking_1_up": "Čestitamo #{team}! Prvi ste na tabeli",
+    "i.notification_ranking_2_up": "Odlično #{team}! Drugi ste na tabeli",
+    "i.notification_ranking_3_up": "Vrlo dobro #{team}! Treći ste na tabeli",
+
+    "i.notification_ranking_1_same": "Vrlo dobro #{team}, nastavljate da vodite na tabeli!",
+    "i.notification_ranking_2_same": "Odlično #{team}, nastavljate da budete drugi na tabeli!",
+    "i.notification_ranking_3_same": "Dobro #{team}, nastavljate da budete treći na tabeli!",
+
+    "i.notification_ranking_2_down": "#{teamOther} vas je upravo pretekao na tabeli! Sada ste drugi na tabeli",
+    "i.notification_ranking_3_down": "#{teamOther} vas je upravo pretekao na tabeli! Sada ste treći na tabeli.",
+
+    "i.notification_ranking_up": "#{team} je napredovao na poziciju #{position} na tabeli!",
+    "i.notification_ranking_down": "#{teamOther} vas je upravo pretekao! #{team} je sada na poziciji #{position} na tabeli.",
+    "i.notification_ranking_down_generic": "#{team} je sada na poziciji #{position} na tabeli.",
+    "i.notification_ranking_generic": "#{team} je na poziciji #{position} na tabeli.",
+    
+    "i.notification_ranking_1_other": "#{team} je sada na prvoj poziciji tabele!",
+    "i.notification_ranking_2_other": "#{team} je sada na drugoj poziciji tabele!",
+    "i.notification_ranking_3_other": "#{team} je sada na trećoj poziciji tabele!",
+
+    "i.notification_time_hours_and_minutes": "#{hours} sati i #{minutes} minuta do isteka vremena.",
+    "i.notification_time_one_hour_and_minutes": "Jedan sat i  #{minutes} minuta do isteka vremena.",
+    "i.notification_time_hours": "#{hours} sati do isteka vremena.",
+    "i.notification_time_one_hour": "1 sat do isteka vremena.",
+    "i.notification_time_minutes": "#{minutes} minuta do isteka vremena.",
+    "i.notification_time_one_minute": "1 minut do isteka vremena.",
+    "i.notification_time_runout": "Vreme je isteklo!",
+    "i.notification_time_runout_title": "Escape soba završena.",
+
+    "i.not_supported_title":"Nepodržani veb pregledač (browser).",
+    "i.not_supported_text":"Žao nam je. Vaš veb pregledač (browser) ne dozvoljava izvršavanje ove aktivnosti. Pokušajte sa drugim pregledačem.",
+  },
+
 };

@@ -12,7 +12,7 @@ export function init(options){
 
   //Default options
   let defaults = {
-    availableLocales: ["es","en"],
+    availableLocales: ["es","en","sr"],
     defaultLocale: "en",
     locale: undefined,
   };
