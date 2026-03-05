@@ -58,7 +58,6 @@ let loadEvents = function(){
 	$("#externalApp").click(function(e){
 		let appUrl = $("#externalApp").attr("href");
 		$("#externalApp").attr("href",escapp.addEscappSettingsToUrl(appUrl));
-
 	});
 
 	$("#ldata").click(function(){

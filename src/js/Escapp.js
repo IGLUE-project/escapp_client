@@ -1402,7 +1402,7 @@ export default function ESCAPP(_settings){
   };
 
   this.addEscappSettingsToUrl = function(url){
-    return this._addEndpointParamToUrl(this._addLocaleParamToUrl(this._addUserCredentialsToUrl(url)));
+    return this._addLocaleParamToUrl(this._addEndpointParamToUrl(this._addUserCredentialsToUrl(url)));
   };
 
   this._addUserCredentialsToUrl = function(url){
@@ -1417,17 +1417,16 @@ export default function ESCAPP(_settings){
   };
 
   this._addLocaleParamToUrl = function(url){
-    let urlParams = Utils.getParamsFromCurrentUrl();
-    if(typeof urlParams.locale === "string"){
-      url = Utils.addParamToUrl(url,"locale",urlParams.locale);
+    var locale = I18n.getLocale();
+    if(typeof locale === "string"){
+      url = Utils.addParamToUrl(url,"locale",locale);
     }
     return url;
   };
 
   this._addEndpointParamToUrl = function(url){
-    let urlParams = Utils.getParamsFromCurrentUrl();
-    if(typeof urlParams.escapp_endpoint === "string"){
-      url = Utils.addParamToUrl(url,"escapp_endpoint",urlParams.escapp_endpoint);
+    if(typeof settings.endpoint === "string"){
+      url = Utils.addParamToUrl(url,"escapp_endpoint",settings.endpoint);
     }
     return url;
   };
