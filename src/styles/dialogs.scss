@@ -56,6 +56,7 @@
   min-height: 25px;
   border: 1px solid black;
   padding: 5px;
+  box-sizing: initial;
 }
 
 .escapp-modal__btn {
@@ -193,4 +194,16 @@ footer .escapp-modal__btn {
 #escapp-modal .escapp-modal__content a {
   text-decoration: none;
   outline: none;
+}
+
+#escapp-modal .escapp-modal__content p {
+  box-sizing: initial;
+}
+
+#escapp-modal .escapp-modal__content p.content {
+  margin: 1px auto;
+}
+
+#escapp-modal .escapp-modal__content p:not(.content):has(> input) {
+  margin: 12px auto;
 }
