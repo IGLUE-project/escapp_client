@@ -447,7 +447,7 @@ export default function ESCAPP(_settings){
   };
 
   this._validatePreviousPuzzles = function(callback){
-    if((!(settings.requiredPuzzlesIds instanceof Array))||(settings.requiredPuzzlesIds.length === 0)){
+    if((settings.preview)||(!(settings.requiredPuzzlesIds instanceof Array))||(settings.requiredPuzzlesIds.length === 0)){
       this._safeCall(callback,true);
     } else {
       //Check requirement
