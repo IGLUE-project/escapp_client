@@ -102,7 +102,7 @@ export default function ESCAPP(_settings){
       _settings = {};
     }
 
-    // Find _settings provided by the Escapp server through a global JavaScript variable named "ESCAPP_APP_SETTINGS"
+    // Find settings provided by the Escapp server through a global JavaScript variable named "ESCAPP_APP_SETTINGS"
     let _appSettings = this._getAppSettingsFromEnvironment();
     if(typeof _appSettings !== "object"){
       _appSettings = {};
@@ -115,6 +115,12 @@ export default function ESCAPP(_settings){
     _appSettings = Object.assign({},_appSettings);
     delete _appSettings.escappClientSettings;
     appSettings = _appSettings;
+
+    //Get settings from URL params
+    let URL_params = Utils.getParamsFromCurrentUrl();
+    if((typeof _settings.preview === "undefined")&&(URL_params.escapp_preview === "true")){
+      _settings.preview = true;
+    }
 
     // Merge _settings with defaultSettings and defaultReadOnlySettings to obtain final settings
     settings = Utils.deepMerge(Utils.deepMerge(defaultSettings, _settings), defaultReadOnlySettings);
@@ -146,8 +152,6 @@ export default function ESCAPP(_settings){
       settings.relatedPuzzleIds = settings.linkedPuzzleIds;
     }
 
-    //Check URL params
-    let URL_params = Utils.getParamsFromCurrentUrl();
     if((typeof settings.endpoint !== "string")&&(typeof URL_params.escapp_endpoint !== "undefined")){
       settings.endpoint = Utils.checkUrlProtocol(URL_params.escapp_endpoint);
     }
@@ -1402,7 +1406,7 @@ export default function ESCAPP(_settings){
   };
 
   this.addEscappSettingsToUrl = function(url){
-    return this._addLocaleParamToUrl(this._addEndpointParamToUrl(this._addUserCredentialsToUrl(url)));
+    return this._addLocaleParamToUrl(this._addPreviewParamToUrl(this._addEndpointParamToUrl(this._addUserCredentialsToUrl(url))));
   };
 
   this._addUserCredentialsToUrl = function(url){
@@ -1416,17 +1420,24 @@ export default function ESCAPP(_settings){
     return url;
   };
 
-  this._addLocaleParamToUrl = function(url){
-    var locale = I18n.getLocale();
-    if(typeof locale === "string"){
-      url = Utils.addParamToUrl(url,"locale",locale);
+  this._addEndpointParamToUrl = function(url){
+    if(typeof settings.endpoint === "string"){
+      url = Utils.addParamToUrl(url,"escapp_endpoint",settings.endpoint);
     }
     return url;
   };
 
-  this._addEndpointParamToUrl = function(url){
-    if(typeof settings.endpoint === "string"){
-      url = Utils.addParamToUrl(url,"escapp_endpoint",settings.endpoint);
+  this._addPreviewParamToUrl = function(url){
+    if(typeof settings.preview === true){
+      url = Utils.addParamToUrl(url,"escapp_preview","true");
+    }
+    return url;
+  };
+
+  this._addLocaleParamToUrl = function(url){
+    var locale = I18n.getLocale();
+    if(typeof locale === "string"){
+      url = Utils.addParamToUrl(url,"locale",locale);
     }
     return url;
   };

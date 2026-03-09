@@ -21,7 +21,7 @@ export function getParamsFromCurrentUrl(){
     return getParamsFromUrl(url);
   } catch (e){
     return {};
-  }; 
+  };
 };
 
 export function getParamsFromUrl(url){
