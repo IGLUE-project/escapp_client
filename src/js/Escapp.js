@@ -1428,7 +1428,7 @@ export default function ESCAPP(_settings){
   };
 
   this._addPreviewParamToUrl = function(url){
-    if(typeof settings.preview === true){
+    if(settings.preview === true){
       url = Utils.addParamToUrl(url,"escapp_preview","true");
     }
     return url;
