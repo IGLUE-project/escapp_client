@@ -50,7 +50,7 @@ export function displayNotification(options = {}){
     options.type = "event";
   }
 
-  if(["ranking","info","warning","event","time","error"].indexOf(options.type)===-1){
+  if(["ranking","info","warning","event","event2","time","error"].indexOf(options.type)===-1){
     options.type = "event";
   }
   switch(options.type){
@@ -61,6 +61,7 @@ export function displayNotification(options = {}){
     case "warning":
       return displayWarningNotification(options);
     case "event":
+    case "event2":
       return displayEventNotification(options);
     case "time":
       return displayTimeNotification(options);
@@ -94,8 +95,14 @@ function displayWarningNotification(options = {}){
 };
 
 function displayEventNotification(options = {}){
+  let notificationClassName;
+  if(["event","event2"].indexOf(options.type)!==-1){
+    notificationClassName = options.type;
+  } else {
+    notificationClassName = "event";
+  }
   let notificationOptions = Utils.deepMerge(options,{
-    className: 'event',
+    className: notificationClassName,
   });
   return _displayNotification(notificationOptions);
 };
@@ -131,8 +138,8 @@ function _displayNotification(options = {}){
     gap: 0
   },options);
   
-  if(["success","info","warn","error","ranking","event"].indexOf(options.className)===-1){
-    options.className = "event";
+  if(["ranking","info","warn","event","event2","time","error"].indexOf(notificationOptions.className)===-1){
+    notificationOptions.className = "event";
   }
 
   //Handle time

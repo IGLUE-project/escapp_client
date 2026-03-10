@@ -140,7 +140,8 @@ let loadEvents = function(){
 		// escapp.displayCustomNotification("Content of the custom ranking notification",{type: "ranking"});
 		// escapp.displayCustomNotification("Content of the custom warning notification",{type: "warning"});
 		// escapp.displayCustomNotification("Content of the custom info notification",{type: "info"});
-		// escapp.displayCustomNotification("Content of the custom event notification",{type: "event"});
+		//escapp.displayCustomNotification("Content of the custom event notification",{type: "event"});
+		//escapp.displayCustomNotification("Content of the custom event notification",{type: "event2"});
 		// escapp.displayCustomNotification("Content of the custom time notification", {type: "time", autoHide: false});
 		// escapp.displayCustomNotification("Content of the custom error notification", {type: "error", autoHide: true});
 	});
