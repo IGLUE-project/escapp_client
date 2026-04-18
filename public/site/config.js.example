@@ -11,8 +11,11 @@ let ESCAPP_CLIENT_SETTINGS = {
   endpoint:"https://escapp.es/api/escapeRooms/id",
   imagesPath:"/images/",
   linkedPuzzleIds: [1],
+  preview: false,
+  silent: false,
   forceValidation: true,
   notifications: "FALSE_IF_EMBED",
+  notificationsRanking: true,
   rtc: true,
   restoreState: "REQUEST_USER",
   I18n: {

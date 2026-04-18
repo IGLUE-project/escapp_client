@@ -1,6 +1,6 @@
 {
   "name": "EscappClient",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "JavaScript library for facilitating client-side web applications to communicate with Escapp, an open-source web platform for creating and conducting educational escape rooms.",
   "main": "index.js",
   "author": "Aldo Gordillo",

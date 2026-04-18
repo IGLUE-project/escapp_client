@@ -4,7 +4,10 @@ import './notify.js';
 import '../styles/notifications.scss';
 
 let initialized = false;
+let notificationTypes = ["ranking","info","warning","event","event2","time","error"];
+let notificationTypesEnabledDefault = ["info","warning","event","event2","time","error"];
 let enabled = false;
+let enabledNotificationTypes = [];
 
 let hideTimer;
 let isHideTimerRunning = false;
@@ -27,6 +30,13 @@ export function init(options){
       enabled = false;
   }
 
+  if(enabled === true){
+    enabledNotificationTypes = [...notificationTypesEnabledDefault];
+    if(options.enabledRanking === true){
+      enabledNotificationTypes.push("ranking");
+    }
+  }
+
   //Escapp is the default boostrap style. Will be overriden from CSS.
   $.notify.addStyle("escapp", {
     html: "<div>\n<span data-notify-text></span>\n</div>",
@@ -35,6 +45,10 @@ export function init(options){
 
 export function isEnabled(){
   return enabled;
+};
+
+export function isTypeEnabled(notificationType){
+  return (enabledNotificationTypes.indexOf(notificationType)!=-1);
 };
 
 export function displayNotification(options = {}){
@@ -50,9 +64,14 @@ export function displayNotification(options = {}){
     options.type = "event";
   }
 
-  if(["ranking","info","warning","event","event2","time","error"].indexOf(options.type)===-1){
+  if(notificationTypes.indexOf(options.type)===-1){
     options.type = "event";
   }
+
+  if(enabledNotificationTypes.indexOf(options.type)===-1){
+    return;
+  }
+
   switch(options.type){
     case "ranking":
       return displayRankingNotification(options);
@@ -88,7 +107,7 @@ function displayInfoNotification(options = {}){
 
 function displayWarningNotification(options = {}){
   let notificationOptions = Utils.deepMerge(options,{
-    className: "warn",
+    className: "warning",
     autoHide: false,
   });
   return _displayNotification(notificationOptions);
@@ -138,7 +157,7 @@ function _displayNotification(options = {}){
     gap: 0
   },options);
   
-  if(["ranking","info","warn","event","event2","time","error"].indexOf(notificationOptions.className)===-1){
+  if(["ranking","info","warning","event","event2","time","error"].indexOf(notificationOptions.className)===-1){
     notificationOptions.className = "event";
   }
 

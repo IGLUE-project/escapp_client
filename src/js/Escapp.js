@@ -34,6 +34,7 @@ export default function ESCAPP(_settings){
     forceValidation: true,
     autovalidate: false,
     notifications: false,
+    notificationsRanking: false,
     rtc: true,
     restoreState: "REQUEST_USER", //AUTO, AUTO_NOTIFICATION, REQUEST_USER, NEVER
     I18n: undefined,
@@ -189,7 +190,7 @@ export default function ESCAPP(_settings){
     LocalStorageApp.init(LocalStorage,settings.preview);
     Encrypt.init(settings.encryptKey);
     Dialogs.init({imagesPath: settings.imagesPath});
-    Notifications.init({enabled: settings.notifications});
+    Notifications.init({enabled: settings.notifications, enabledRanking: settings.notificationsRanking});
     Animations.init({imagesPath: settings.imagesPath});
     Events.init({endpoint: settings.endpoint, escapp: this});
     Countdown.init({notifications: ((Notifications.isEnabled())&&(settings.countdown)), escapp: this});
