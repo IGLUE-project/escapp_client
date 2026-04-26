@@ -759,8 +759,8 @@ export default function ESCAPP(_settings){
 
   this._displayConnectionErrorDialog = function(cancelable,callback){
     let dialogOptions = {};
-    dialogOptions.title = I18n.getTrans("i.connecton_error_title");
-    dialogOptions.text = I18n.getTrans("i.connecton_error_text"); 
+    dialogOptions.title = I18n.getTrans("i.connection_error_title");
+    dialogOptions.text = I18n.getTrans("i.connection_error_text"); 
     dialogOptions.buttons = [
       {
         "response":"retry",
